@@ -100,12 +100,12 @@ class PygacFdrNetcdfWriter:
                                    if attr in keep_attrs])
 
     def _rename_datasets(self, scene):
-        for ds_id in scene.keys():
-            new_name = self.dataset_names.get(ds_id.name, ds_id.name)
-            if new_name != ds_id.name:
-                scene[new_name] = scene[ds_id]
-                scene[new_name].attrs['name'] = new_name
-                del scene[ds_id]
+        for old_name, new_name in self.dataset_names.items():
+            try:
+                scene[new_name] = scene[old_name]
+            except KeyError:
+                continue
+            del scene[old_name]
 
     def write(self, scene):
         filename = self._compose_filename(scene)
