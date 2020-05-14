@@ -7,55 +7,64 @@ import xarray as xr
 
 class QualityFlags(IntEnum):
     OK = 0
-    TOO_SHORT = 1
-    DUPLICATE = 2  # identical record from different ground stations
-    REDUNDANT = 3  # subset of another file
+    TOO_SHORT = 1  # too few scanlines
+    TOO_LONG = 2  # (end_time - start_time) unrealistically large
+    DUPLICATE = 3  # identical record from different ground stations
+    REDUNDANT = 4  # subset of another file
 
 
 records = [
     {'platform': 'NOAA-6',
      'start_time': np.datetime64('2009-06-30'),
-     'end_time': np.datetime64('2009-07-01'),
+     'end_time': np.datetime64('2049-01-01'),
      'along_track': 11999,
      'filename': 'foo.nc',
      'midnight_scanline': 1234,
      'cut_line_overlap': None,
      'quality_flag': QualityFlags.OK},
     {'platform': 'NOAA-6',
-     'start_time': np.datetime64('2009-07-01'),
-     'end_time': np.datetime64('2009-07-01 13:30'),
+     'start_time': np.datetime64('2009-07-01 00:00'),
+     'end_time': np.datetime64('2009-07-01 01:00'),
+     'along_track': 11999,
+     'filename': 'foo.nc',
+     'midnight_scanline': 1234,
+     'cut_line_overlap': None,
+     'quality_flag': QualityFlags.OK},
+    {'platform': 'NOAA-6',
+     'start_time': np.datetime64('2009-07-01 00:50'),
+     'end_time': np.datetime64('2009-07-01 02:00'),
      'along_track': 12000,
      'filename': 'foo.nc',
      'midnight_scanline': 1234,
      'cut_line_overlap': None,
      'quality_flag': QualityFlags.OK},
     {'platform': 'NOAA-6',
-     'start_time': np.datetime64('2009-07-01 12:00'),
-     'end_time': np.datetime64('2009-07-01 13:00'),
+     'start_time': np.datetime64('2009-07-01 01:15'),
+     'end_time': np.datetime64('2009-07-01 01:30'),
      'along_track': 12001,
      'filename': 'foo.nc',
      'midnight_scanline': 1234,
      'cut_line_overlap': None,
      'quality_flag': QualityFlags.OK},
     {'platform': 'NOAA-6',
-     'start_time': np.datetime64('2009-07-01 12:00'),
-     'end_time': np.datetime64('2009-07-01 13:00'),
+     'start_time': np.datetime64('2009-07-01 01:15'),
+     'end_time': np.datetime64('2009-07-01 01:30'),
      'along_track': 12002,
      'filename': 'foo.nc',
      'midnight_scanline': 1234,
      'cut_line_overlap': None,
      'quality_flag': QualityFlags.OK},
     {'platform': 'NOAA-6',
-     'start_time': np.datetime64('2009-07-02'),
-     'end_time': np.datetime64('2009-07-03'),
+     'start_time': np.datetime64('2009-07-01 01:50'),
+     'end_time': np.datetime64('2009-07-01 03:00'),
      'along_track': 49,
      'filename': 'foo.nc',
      'midnight_scanline': 1234,
      'cut_line_overlap': None,
      'quality_flag': QualityFlags.OK},
     {'platform': 'NOAA-6',
-     'start_time': np.datetime64('2009-07-03'),
-     'end_time': np.datetime64('2009-07-04'),
+     'start_time': np.datetime64('2009-07-01 02:50'),
+     'end_time': np.datetime64('2009-07-01 04:00'),
      'along_track': 12003,
      'filename': 'foo.nc',
      'midnight_scanline': 1234,
@@ -63,41 +72,57 @@ records = [
      'quality_flag': QualityFlags.OK},
 
     {'platform': 'NOAA-7',
-     'start_time': np.datetime64('2009-07-01'),
-     'end_time': np.datetime64('2009-07-02'),
-     'along_track': 9000,
+     'start_time': np.datetime64('2009-06-30'),
+     'end_time': np.datetime64('2049-01-01'),
+     'along_track': 11999,
      'filename': 'foo.nc',
      'midnight_scanline': 1234,
      'cut_line_overlap': None,
      'quality_flag': QualityFlags.OK},
     {'platform': 'NOAA-7',
-     'start_time': np.datetime64('2009-07-01 12:00'),
-     'end_time': np.datetime64('2009-07-01 13:00'),
-     'along_track': 9001,
+     'start_time': np.datetime64('2009-07-01 00:00'),
+     'end_time': np.datetime64('2009-07-01 01:00'),
+     'along_track': 11999,
      'filename': 'foo.nc',
      'midnight_scanline': 1234,
      'cut_line_overlap': None,
      'quality_flag': QualityFlags.OK},
     {'platform': 'NOAA-7',
-     'start_time': np.datetime64('2009-07-01 12:00'),
-     'end_time': np.datetime64('2009-07-01 13:00'),
-     'along_track': 9001,
+     'start_time': np.datetime64('2009-07-01 00:50'),
+     'end_time': np.datetime64('2009-07-01 02:00'),
+     'along_track': 12000,
      'filename': 'foo.nc',
      'midnight_scanline': 1234,
      'cut_line_overlap': None,
      'quality_flag': QualityFlags.OK},
     {'platform': 'NOAA-7',
-     'start_time': np.datetime64('2009-07-02'),
-     'end_time': np.datetime64('2009-07-03'),
-     'along_track': 9002,
+     'start_time': np.datetime64('2009-07-01 01:15'),
+     'end_time': np.datetime64('2009-07-01 01:30'),
+     'along_track': 12001,
      'filename': 'foo.nc',
      'midnight_scanline': 1234,
      'cut_line_overlap': None,
      'quality_flag': QualityFlags.OK},
     {'platform': 'NOAA-7',
-     'start_time': np.datetime64('2009-07-03'),
-     'end_time': np.datetime64('2009-07-04'),
+     'start_time': np.datetime64('2009-07-01 01:15'),
+     'end_time': np.datetime64('2009-07-01 01:30'),
+     'along_track': 12002,
+     'filename': 'foo.nc',
+     'midnight_scanline': 1234,
+     'cut_line_overlap': None,
+     'quality_flag': QualityFlags.OK},
+    {'platform': 'NOAA-7',
+     'start_time': np.datetime64('2009-07-01 01:50'),
+     'end_time': np.datetime64('2009-07-01 03:00'),
      'along_track': 49,
+     'filename': 'foo.nc',
+     'midnight_scanline': 1234,
+     'cut_line_overlap': None,
+     'quality_flag': QualityFlags.OK},
+    {'platform': 'NOAA-7',
+     'start_time': np.datetime64('2009-07-01 02:50'),
+     'end_time': np.datetime64('2009-07-01 04:00'),
+     'along_track': 12003,
      'filename': 'foo.nc',
      'midnight_scanline': 1234,
      'cut_line_overlap': None,
@@ -110,30 +135,43 @@ class PygacFdrMetadataCollector:
         # TODO: Read actual file contents
         return records
 
-    def _set_redundant_flag(self, df):
+    def _set_redundant_flag(self, df, window=20):
+        """Flag redundant orbits.
+
+        An orbit is called redundant if it is entirely overlapped by one of its predecessors
+        (in time).
+
+        :param window: Number of preceding orbits to be taken into account
+        """
         def is_redundant(end_times):
-            start_times = end_times.index.to_numpy()
+            start_times = end_times.index.get_level_values('start_time').to_numpy()
             end_times = end_times.to_numpy()
             redundant = (start_times[-1] >= start_times) & \
                         (end_times[-1] <= end_times)
             redundant[-1] = False
             return redundant.any()
 
-        # DataFrame.rolling only supports numerical data types. Convert timestamps to integer.
-        df['start_time'] = df['start_time'].astype(np.int64)
-        df['end_time'] = df['end_time'].astype(np.int64)
+        # Only take into account orbits that passed the QC check so far (e.g. we don't want
+        # orbits flagged as TOO_LONG to overlap many subsequent orbits)
+        df_ok = df[df['quality_flag'] == QualityFlags.OK]
 
-        # DataFrame.rolling().apply() only has access to one column at a time. Workaround: Move
-        # start_time to the index and pass the end_time series - including the index - to our function.
-        # This can be achieved by calling apply(..., raw=False).
-        df_tmp = df.set_index('start_time')
-        rolling = df_tmp['end_time'].rolling(20, min_periods=2)
+        # DataFrame.rolling is an elegant solution, but it has two drawbacks:
+        # a) It only supports numerical data types. Workaround: Convert timestamps to integer.
+        df_ok['start_time'] = df_ok['start_time'].astype(np.int64)
+        df_ok['end_time'] = df_ok['end_time'].astype(np.int64)
+
+        # b) DataFrame.rolling().apply() only has access to one column at a time. Workaround: Move
+        #    start_time to the index and pass the end_time series - including the index - to our
+        #    function. This can be achieved by calling apply(..., raw=False).
+        df_ok = df_ok.set_index('start_time', append=True)
+        rolling = df_ok['end_time'].rolling(window, min_periods=2)
         redundant = rolling.apply(is_redundant, raw=False).fillna(0).astype(np.bool)
-        redundant.reset_index(drop=True, inplace=True)
-        df.loc[redundant, 'quality_flag'] = QualityFlags.REDUNDANT
+        redundant = redundant.reset_index('start_time', drop=True)
 
-        df['start_time'] = df['start_time'].astype('datetime64[ns]')
-        df['end_time'] = df['end_time'].astype('datetime64[ns]')
+        # So far we have operated on the qc-passed rows only. Update quality flags of rows in the
+        # original (full) data frame.
+        redundant = redundant[redundant.astype(np.bool)]
+        df.loc[redundant.index, 'quality_flag'] = QualityFlags.REDUNDANT
 
     def _set_duplicate_flag(self, df):
         gs_dupl = df.duplicated(subset=['platform', 'start_time', 'end_time'],
@@ -145,12 +183,18 @@ class PygacFdrMetadataCollector:
         too_short = df['along_track'] < min_lines
         df.loc[too_short, 'quality_flag'] = QualityFlags.TOO_SHORT
 
+    def _set_too_long_flag(self, df, max_length=120):
+        max_length = np.timedelta64(max_length, 'm')
+        too_long = (df['end_time'] - df['start_time']) > max_length
+        df.loc[too_long, 'quality_flag'] = QualityFlags.TOO_LONG
+
     def set_qual_flags(self, df):
         df.sort_values(by=['start_time', 'end_time'], inplace=True)
-        df.reset_index(inplace=True, drop=True)
+        df = df.reset_index(drop=True)
+        self._set_too_short_flag(df)
+        self._set_too_long_flag(df)
         self._set_redundant_flag(df)
         self._set_duplicate_flag(df)
-        self._set_too_short_flag(df)
         return df
 
     def calc_overlap(self, df):
@@ -177,7 +221,7 @@ class PygacFdrMetadataCollector:
 
         # Set quality flags
         df = df.groupby('platform').apply(lambda x: self.set_qual_flags(x))
-        df.drop(['platform'], axis=1, inplace=True)
+        df = df.drop(['platform'], axis=1)
 
         # Calculate overlap
         # TODO
@@ -199,18 +243,3 @@ def set_metadata(files, mda):
     pd.set_option('display.width', None)
     pd.set_option('display.max_colwidth', None)
     print(mda)
-
-
-if __name__ == '__main__':
-    # Collect metadata from nc files. Since this may take some time, dump results into a database.
-    my_files = ['file1.nc', 'file2.nc']
-    collector = PygacFdrMetadataCollector()
-    mda = collector.get_metadata(my_files)
-    collector.to_sql(mda, 'test.sqlite3')
-
-    # Next step: Read database and set metadata of nc files. For smaller datasets you could pass the
-    # metadata directly without dumping/loading it to/from a database.
-    con = sqlite3.connect('test.sqlite3')
-    mda = pd.read_sql('select * from metadata', con)
-    set_metadata(files=my_files, mda=mda)
-    con.close()
