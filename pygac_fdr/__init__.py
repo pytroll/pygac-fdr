@@ -107,8 +107,8 @@ class PygacFdrNetcdfWriter:
                 continue
             del scene[old_name]
 
-    def write(self, scene):
-        filename = self._compose_filename(scene)
+    def write(self, scene, output_dir):
+        filename = os.path.join(output_dir, self._compose_filename(scene))
         global_attrs = self._get_global_attrs(scene)
         self._cleanup_attrs(scene)
         self._rename_datasets(scene)
