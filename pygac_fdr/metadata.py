@@ -1,8 +1,12 @@
 from enum import IntEnum
+import logging
 import numpy as np
 import pandas as pd
 import sqlite3
 import xarray as xr
+
+
+LOG = logging.getLogger(__name__)
 
 
 class QualityFlags(IntEnum):
@@ -131,8 +135,38 @@ records = [
 
 
 class PygacFdrMetadataCollector:
-    def _collect_metadata(self, files):
-        # TODO: Read actual file contents
+    def _get_midnight_line(self, acq_time):
+        """Find scanline where the UTC date increases by one day.
+
+        Returns:
+            int: The midnight scanline if it exists.
+                 None, else.
+        """
+        d0 = np.datetime64('1970-01-01', 'D')
+        days = (acq_time.astype('datetime64[D]') - d0).astype(np.int64)
+        incr = np.where(np.diff(days) == 1)[0]
+        if len(incr) >= 1:
+            if len(incr) > 1:
+                LOG.warning('UTC date increases more than once. Choosing the first '
+                            'occurence as midnight scanline.')
+            return incr[0]
+        return None
+
+    def _collect_metadata(self, filenames):
+        # TODO: Equator crossing time
+        records = []
+        for filename in filenames:
+            with xr.open_dataset(filename) as ds:
+                midnight_line = self._get_midnight_line(ds['acq_time'])
+                rec = {'platform':  ds.attrs['platform_name'],
+                       'start_time': ds['acq_time'].min().values,
+                       'end_time': ds['acq_time'].max().values,
+                       'along_track': ds.dims['y'],
+                       'filename': filename,
+                       'midnight_line': midnight_line,
+                       'cut_line_overlap': None,
+                       'quality_flag': QualityFlags.OK}
+                records.append(rec)
         return records
 
     def _set_redundant_flag(self, df, window=20):
@@ -188,7 +222,7 @@ class PygacFdrMetadataCollector:
         too_long = (df['end_time'] - df['start_time']) > max_length
         df.loc[too_long, 'quality_flag'] = QualityFlags.TOO_LONG
 
-    def set_qual_flags(self, df):
+    def _set_qual_flags(self, df):
         df.sort_values(by=['start_time', 'end_time'], inplace=True)
         df = df.reset_index(drop=True)
         self._set_too_short_flag(df)
@@ -197,35 +231,35 @@ class PygacFdrMetadataCollector:
         self._set_duplicate_flag(df)
         return df
 
-    def calc_overlap(self, df):
+    def _calc_overlap(self, df):
         """
         Compare timestamps of two consecutive orbits and determine where they overlap. Cut the
         first one in the end so that there is no overlap. This reads the timestamps once from all
         files, but it's much simpler than the former logic using an approximate scanning
         frequency.
         """
-        # TODO: Not tested
-        df_qc = df[df['quality_flag'] == QualityFlags.OK]
-        for i in range(1, len(df_qc)):
+        df_ok = df[df['quality_flag'] == QualityFlags.OK]
+        for i in range(1, len(df_ok)):
             # TODO: Re-use timestamps from previous iteration
-            this_row = df_qc.iloc[i]
-            prev_row = df_qc.iloc[i - 1]
+            this_row = df_ok.iloc[i]
+            prev_row = df_ok.iloc[i - 1]
             if this_row['start_time'] >= prev_row['end_time']:
                 this_ds = xr.open_dataset(this_row['filename'])
                 prev_ds = xr.open_dataset(prev_row['filename'])
                 cut = (prev_ds['acq_time'] >= this_ds['acq_time'][0]).argmax()
-                df[df_qc.index[i]]['cut_line_overlap'] = cut
+                df.loc[df_ok.index[i], 'cut_line_overlap'] = cut
+        return df
 
-    def get_metadata(self, files):
-        df = pd.DataFrame(self._collect_metadata(files))
+    def get_metadata(self, filenames):
+        df = pd.DataFrame(self._collect_metadata(filenames))
 
         # Set quality flags
-        df = df.groupby('platform').apply(lambda x: self.set_qual_flags(x))
+        df = df.groupby('platform').apply(lambda x: self._set_qual_flags(x))
         df = df.drop(['platform'], axis=1)
 
         # Calculate overlap
-        # TODO
-        # self.calc_overlap(df)
+        df = df.groupby('platform').apply(lambda x: self._calc_overlap(x))
+        print(df)
 
         return df
 
@@ -236,7 +270,7 @@ class PygacFdrMetadataCollector:
         con.close()
 
 
-def set_metadata(files, mda):
+def set_metadata(filenames, mda):
     # TODO
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)
