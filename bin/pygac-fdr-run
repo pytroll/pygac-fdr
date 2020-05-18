@@ -1,0 +1,56 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2020 pygac-fdr developers
+#
+# This file is part of pygac-fdr.
+#
+# pygac-fdr is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# pygac-fdr is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# pygac-fdr. If not, see <http://www.gnu.org/licenses/>.
+
+import argparse
+import logging
+from pygac_fdr import read_gac, NetcdfWriter
+
+
+LOG = logging.getLogger('pygac_fdr')
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Read & calibrate AVHRR GAC data and write '
+                                                 'results to netCDF')
+    parser.add_argument('--output-dir', default='.', help='Output directory')
+    parser.add_argument('--tle-dir', required=True, type=str, help='Directory containing TLE data')
+    parser.add_argument('--tle-name', type=str, default='TLE_%(satname)s.txt',
+                        help='TLE filename pattern')
+    parser.add_argument('--tle-thresh', type=int, help='Maximum number of days between observation '
+                                                       'and closest TLE timestamp')
+    parser.add_argument('--debug', action='store_true', help='Enable debug mode, i.e. exit on '
+                                                             'first error. Otherwise continue with '
+                                                             'next file.')
+    parser.add_argument('filenames', nargs='+', help='AVHRR GAC level 1b files to be processed')
+    args = parser.parse_args()
+
+    reader_kwargs = {'tle_dir': args.tle_dir,
+                     'tle_name': args.tle_name,
+                     'tle_thresh': args.tle_thresh,
+                     # TODO: 'calib_coefs': my_coefs
+                     }
+    for filename in args.filenames:
+        LOG.info('Processing {}'.format(filename))
+        try:
+            scene = read_gac(filename, reader_kwargs=reader_kwargs)
+            writer = NetcdfWriter()
+            writer.write(output_dir=args.output_dir, scene=scene)
+        except Exception as err:
+            if args.debug:
+                raise
+            LOG.error('Error processing {}: {}'.format(filename, err))

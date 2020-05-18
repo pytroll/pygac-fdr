@@ -1,3 +1,4 @@
+import os
 from setuptools import find_packages, setup
 
 
@@ -12,6 +13,7 @@ setup(name='pygac-fdr',
       author_email='pytroll@googlegroups.com',
       url="https://github.com/pytroll/pygac-fdr",
       packages=find_packages(),
+      scripts=[os.path.join('bin', item) for item in os.listdir('bin')],
       use_scm_version=True,
       install_requires=requires,
       tests_require=test_requires,
