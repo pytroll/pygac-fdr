@@ -23,7 +23,7 @@ from setuptools import find_packages, setup
 
 if __name__ == '__main__':
     version = importlib.import_module('pygac_fdr.version').__version__
-    requires = ['numpy', 'netCDF4', 'pygac >=1.3.1', 'satpy >=0.21.0']
+    requires = ['numpy', 'netCDF4', 'pygac >=1.3.1', 'satpy >=0.21.0', 'pyyaml']
     test_requires = ['pytest']
     README = open('README.md', 'r').read()
     setup(name='pygac-fdr',

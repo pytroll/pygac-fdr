@@ -1,2 +1,35 @@
 # pygac-fdr
 Python package for creating a Fundamental Data Record (FDR) of AVHRR GAC data using pygac
+
+Installation
+============
+
+```
+git clone https://github.com/pytroll/pygac-fdr
+cd pygac-fdr
+pip install .
+```
+
+Usage
+=====
+
+To read and calibrate AVHRR GAC level 1b data, adapt the config file in `etc/pygac-fdr.yaml`, then
+run:
+```
+pygac-fdr-run --cfg=etc/pygac-fdr.yaml /data/avhrr_gac/NSS.GHRR.M1.D20021.S0*
+```
+
+Results are written into the specified output directory in netCDF format. Afterwards, collect and
+complement metadata of the generated netCDF files:
+
+```
+pygac-fdr-mda-collect --dbfile=test.sqlite3 /data/avhrr_gac/output/*
+```
+
+This might take some time, so the results are saved into a database. You can specify files from 
+multiple platforms; the metadata are analyzed for each platform separately. Finally, update the
+netCDF metadata inplace:
+
+```
+pygac-fdr-mda-update --dbfile=test.sqlite3
+```

@@ -23,14 +23,14 @@ FILL_VALUE_LINE = -9999
 
 
 class MetadataCollector:
-    """Collect and extent metadata from level 1c files.
+    """Collect and complement metadata from level 1c files.
 
     Additional metadata include global quality flags as well as cut information to remove
     orbit overlap.
     """
 
     def get_metadata(self, filenames):
-        """Collect and extent metadata from the given level 1c files."""
+        """Collect and complement metadata from the given level 1c files."""
         df = pd.DataFrame(self._collect_metadata(filenames))
 
         # Set quality flags
