@@ -39,13 +39,97 @@ DATASET_NAMES = {
     '4': 'channel_4',
     '5': 'channel_5',
 }
+FILL_VALUE_INT16 = -32767
+FILL_VALUE_INT32 = -2147483648
 DEFAULT_ENCODING = {
+    'channel_1': {'dtype': 'int16',
+                  'scale_factor': 0.01,
+                  'add_offset': 0,
+                  '_FillValue': FILL_VALUE_INT16,
+                  'zlib': True,
+                  'complevel': 4},
+    'channel_2': {'dtype': 'int16',
+                  'scale_factor': 0.01,
+                  'add_offset': 0,
+                  '_FillValue': FILL_VALUE_INT16,
+                  'zlib': True,
+                  'complevel': 4},
+    'channel_3': {'dtype': 'int16',
+                  'scale_factor': 0.01,
+                  'add_offset': 0,
+                  '_FillValue': FILL_VALUE_INT16,
+                  'zlib': True,
+                  'complevel': 4},
+    'channel_3a': {'dtype': 'int16',
+                   'scale_factor': 0.01,
+                   'add_offset': 0,
+                   '_FillValue': FILL_VALUE_INT16,
+                   'zlib': True,
+                   'complevel': 4},
+    'channel_3b': {'dtype': 'int16',
+                   'scale_factor': 0.01,
+                   'add_offset': 273.15,
+                   '_FillValue': FILL_VALUE_INT16,
+                   'zlib': True,
+                   'complevel': 4},
     'channel_4': {'dtype': 'int16',
                   'scale_factor': 0.01,
-                  '_FillValue': -32767,
+                  'add_offset': 273.15,
+                  '_FillValue': FILL_VALUE_INT16,
                   'zlib': True,
-                  'complevel': 4,
-                  'add_offset': 273.15}
+                  'complevel': 4},
+    'channel_5': {'dtype': 'int16',
+                  'scale_factor': 0.01,
+                  'add_offset': 273.15,
+                  '_FillValue': FILL_VALUE_INT16,
+                  'zlib': True,
+                  'complevel': 4},
+    'latitude': {'dtype': 'int32',
+                 'scale_factor': 0.001,
+                 'add_offset': 0,
+                 '_FillValue': FILL_VALUE_INT32,
+                 'zlib': True,
+                 'complevel': 4},
+    'longitude': {'dtype': 'int32',
+                  'scale_factor': 0.001,
+                  'add_offset': 0,
+                  '_FillValue': FILL_VALUE_INT32,
+                  'zlib': True,
+                  'complevel': 4},
+    'sensor_azimuth_angle': {'dtype': 'int16',
+                             'scale_factor': 0.01,
+                             'add_offset': 180.0,
+                             '_FillValue': FILL_VALUE_INT16,
+                             'zlib': True,
+                             'complevel': 4},
+    'sensor_zenith_angle': {'dtype': 'int16',
+                            'scale_factor': 0.01,
+                            'add_offset': 0,
+                            '_FillValue': FILL_VALUE_INT16,
+                            'zlib': True,
+                            'complevel': 4},
+    'solar_azimuth_angle': {'dtype': 'int16',
+                            'scale_factor': 0.01,
+                            'add_offset': 180.0,
+                            '_FillValue': FILL_VALUE_INT16,
+                            'zlib': True,
+                            'complevel': 4},
+    'solar_zenith_angle': {'dtype': 'int16',
+                           'scale_factor': 0.01,
+                           'add_offset': 0,
+                           '_FillValue': FILL_VALUE_INT16,
+                           'zlib': True,
+                           'complevel': 4},
+    'sun_sensor_azimuth_difference_angle': {'dtype': 'int16',
+                                            'scale_factor': 0.01,
+                                            'add_offset': 0,
+                                            '_FillValue': FILL_VALUE_INT16,
+                                            'zlib': True,
+                                            'complevel': 4},
+    'qual_flags': {'dtype': 'int16',
+                   '_FillValue': FILL_VALUE_INT16,
+                   'zlib': True,
+                   'complevel': 4}
 }  # refers to renamed datasets
 
 
@@ -137,6 +221,14 @@ class NetcdfWriter:
                 continue
             del scene[old_name]
 
+    def _get_encoding(self, scene):
+        """Get netCDF encoding for the datasets in the scene."""
+        # Remove entries from the encoding dictionary if the corresponding dataset is not available.
+        # The CF writer doesn't like that.
+        enc_keys = set(self.encoding.keys())
+        scn_keys = set([key.name for key in scene.keys()])
+        return dict([(key, self.encoding[key]) for key in enc_keys.intersection(scn_keys)])
+
     def write(self, scene, output_dir):
         """Write an AVHRR GAC scene to netCDF.
 
@@ -151,12 +243,13 @@ class NetcdfWriter:
         global_attrs = self._get_global_attrs(scene)
         self._cleanup_attrs(scene)
         self._rename_datasets(scene)
+        encoding = self._get_encoding(scene)
         scene.save_datasets(writer='cf',
                             filename=filename,
                             header_attrs=global_attrs,
                             engine=self.engine,
                             flatten_attrs=True,
-                            encoding=self.encoding,
+                            encoding=encoding,
                             pretty=True)
 
         return filename
