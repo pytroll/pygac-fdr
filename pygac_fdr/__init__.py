@@ -19,6 +19,10 @@
 from datetime import datetime
 import os
 import satpy
+import pygac_fdr.version
+
+
+__version__ = pygac_fdr.version.__version__
 
 
 BANDS = ['1', '2', '3', '3a', '3b', '4', '5']
