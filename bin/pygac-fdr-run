@@ -18,7 +18,8 @@
 
 import argparse
 import logging
-from pygac_fdr import read_gac, NetcdfWriter
+from pygac_fdr.reader import read_gac
+from pygac_fdr.writer import NetcdfWriter
 
 
 LOG = logging.getLogger('pygac_fdr')
