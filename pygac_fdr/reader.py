@@ -1,0 +1,55 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2020 pygac-fdr developers
+#
+# This file is part of pygac-fdr.
+#
+# pygac-fdr is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# pygac-fdr is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# pygac-fdr. If not, see <http://www.gnu.org/licenses/>.
+
+"""Read and calibrate AVHRR GAC level 1b data."""
+
+import os
+import satpy
+
+BANDS = ['1', '2', '3', '3a', '3b', '4', '5']
+AUX_DATA = ['latitude',
+            'longitude',
+            'qual_flags',
+            'sensor_zenith_angle',
+            'solar_zenith_angle',
+            'solar_azimuth_angle',
+            'sensor_azimuth_angle',
+            'sun_sensor_azimuth_difference_angle']
+
+
+def read_gac(filename, reader_kwargs):
+    """Read and calibrate AVHRR GAC level 1b data using satpy.
+
+    Args:
+        filename (str): AVHRR GAC level 1b file
+        reader_kwargs (dict): Keyword arguments to be passed to the reader.
+    Returns:
+        The loaded data in a satpy.Scene object.
+    """
+    scene = satpy.Scene(filenames=[filename], reader='avhrr_l1b_gaclac',
+                        reader_kwargs=reader_kwargs)
+    scene.load(BANDS)
+    scene.load(AUX_DATA)
+
+    # Add additional metadata
+    scene.attrs['l1b_filename'] = os.path.basename(filename)
+    filename_info = scene.readers['avhrr_l1b_gaclac'].file_handlers['gac_lac_l1b'][0].filename_info
+    for key, val in filename_info.items():
+        scene.attrs['l1b_' + key] = val
+
+    return scene

@@ -16,8 +16,9 @@
 # You should have received a copy of the GNU General Public License along with
 # pygac-fdr. If not, see <http://www.gnu.org/licenses/>.
 
-from satpy.utils import get_logger
-import pygac_fdr.version
+import yaml
 
-__version__ = pygac_fdr.version.__version__
-log = get_logger('pygac-fdr')
+
+def read_config(filename):
+    with open(filename) as fh:
+        return yaml.safe_load(fh)
