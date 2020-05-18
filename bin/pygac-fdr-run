@@ -20,38 +20,45 @@ import argparse
 import logging
 from pygac_fdr.reader import read_gac
 from pygac_fdr.writer import NetcdfWriter
+from pygac_fdr.config import read_config
 
 
 LOG = logging.getLogger('pygac_fdr')
 
 
 if __name__ == '__main__':
+    # Parse command line arguments
     parser = argparse.ArgumentParser(description='Read & calibrate AVHRR GAC data and write '
                                                  'results to netCDF')
-    parser.add_argument('--output-dir', default='.', help='Output directory')
-    parser.add_argument('--tle-dir', required=True, type=str, help='Directory containing TLE data')
-    parser.add_argument('--tle-name', type=str, default='TLE_%(satname)s.txt',
-                        help='TLE filename pattern')
-    parser.add_argument('--tle-thresh', type=int, help='Maximum number of days between observation '
-                                                       'and closest TLE timestamp')
-    parser.add_argument('--debug', action='store_true', help='Enable debug mode, i.e. exit on '
-                                                             'first error. Otherwise continue with '
-                                                             'next file.')
+    parser.add_argument('--cfg',
+                        required=True,
+                        type=str,
+                        help='Path to pygac-fdr configuration file.')
+    parser.add_argument('--output-dir',
+                        help='Output directory. Overrides entry in the configuration file.')
+    parser.add_argument('--debug',
+                        action='store_true',
+                        help='Enable debug mode, i.e. exit on first error. Otherwise continue with '
+                             'next file. Overrides entry in the configuration file.')
     parser.add_argument('filenames', nargs='+', help='AVHRR GAC level 1b files to be processed')
     args = parser.parse_args()
 
-    reader_kwargs = {'tle_dir': args.tle_dir,
-                     'tle_name': args.tle_name,
-                     'tle_thresh': args.tle_thresh,
-                     # TODO: 'calib_coefs': my_coefs
-                     }
+    # Read config file. Convenience: Allow overriding of frequently used arguments from the command
+    # line.
+    config = read_config(args.cfg)
+    if args.output_dir:
+        config['output_dir'] = args.output_dir
+    if args.debug:
+        config['debug'] = args.debug
+
+    # Process files
     for filename in args.filenames:
         LOG.info('Processing {}'.format(filename))
         try:
-            scene = read_gac(filename, reader_kwargs=reader_kwargs)
-            writer = NetcdfWriter()
-            writer.write(output_dir=args.output_dir, scene=scene)
+            scene = read_gac(filename, reader_kwargs=config['reader_kwargs'])
+            writer = NetcdfWriter(global_attrs=config['global_attrs'])
+            writer.write(output_dir=config['output_dir'], scene=scene)
         except Exception as err:
-            if args.debug:
+            if config['debug']:
                 raise
             LOG.error('Error processing {}: {}'.format(filename, err))
