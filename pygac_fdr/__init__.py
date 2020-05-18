@@ -170,9 +170,12 @@ class NetcdfWriter:
                     'orbital_parameters',
                     'orbit_number']
 
-    def __init__(self, global_attrs=None, encoding=None, engine='netcdf4'):
+    def_fname_fmt = 'avhrr_gac_fdr_v%(version)s_%(platform)s_%(start_time)s_%(end_time)s.nc'
+
+    def __init__(self, global_attrs=None, encoding=None, engine='netcdf4', fname_fmt=None):
         self.global_attrs = global_attrs if global_attrs is not None else {}
         self.engine = engine
+        self.fname_fmt = fname_fmt if fname_fmt is not None else self.def_fname_fmt
 
         # User defined encoding takes precedence over default encoding
         self.encoding = DEFAULT_ENCODING.copy()
@@ -180,12 +183,14 @@ class NetcdfWriter:
 
     def _compose_filename(self, scene):
         """Compose output filename."""
-        time_fmt = '%Y%m%d_%H%M%S'
-        tstart = scene['4']['acq_time'].min()
-        tend = scene['4']['acq_time'].max()
-        return 'avhrr_gac_fdr_{}_{}_{}.nc'.format(scene['4'].attrs['platform_name'],
-                                                  tstart.dt.strftime(time_fmt).data,
-                                                  tend.dt.strftime(time_fmt).data)
+        time_fmt = '%Y%m%dT%H%M%SZ'
+        tstart = scene['4']['acq_time'][0]
+        tend = scene['4']['acq_time'][-1]
+        fields = {'start_time': tstart.dt.strftime(time_fmt).data,
+                  'end_time': tend.dt.strftime(time_fmt).data,
+                  'platform': scene['4'].attrs['platform_name'],
+                  'version': __version__.replace('.', '-')}
+        return self.fname_fmt % fields
 
     def _get_global_attrs(self, scene):
         """Compile global attributes."""
