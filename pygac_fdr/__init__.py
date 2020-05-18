@@ -16,6 +16,8 @@
 # You should have received a copy of the GNU General Public License along with
 # pygac-fdr. If not, see <http://www.gnu.org/licenses/>.
 
+from satpy.utils import get_logger
 import pygac_fdr.version
 
 __version__ = pygac_fdr.version.__version__
+log = get_logger('pygac-fdr')
