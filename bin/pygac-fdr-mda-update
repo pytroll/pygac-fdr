@@ -17,7 +17,10 @@
 # pygac-fdr. If not, see <http://www.gnu.org/licenses/>.
 
 import argparse
+import logging
 from pygac_fdr.metadata import MetadataCollector, update_metadata
+from pygac_fdr.utils import logging_on
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Update metadata in level 1c files')
@@ -25,7 +28,9 @@ if __name__ == '__main__':
                         required=True,
                         type=str,
                         help='Metadata database created with pygac-fdr-mda-collect')
+    parser.add_argument('--verbose', action='store_true', help='Increase verbosity')
     args = parser.parse_args()
+    logging_on(logging.DEBUG if args.verbose else logging.INFO)
 
     collector = MetadataCollector()
     mda = collector.read_sql(args.dbfile)

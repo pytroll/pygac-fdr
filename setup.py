@@ -16,18 +16,17 @@
 # You should have received a copy of the GNU General Public License along with
 # pygac-fdr. If not, see <http://www.gnu.org/licenses/>.
 
-import importlib
 import os
 from setuptools import find_packages, setup
+import pygac_fdr
 
 
 if __name__ == '__main__':
-    version = importlib.import_module('pygac_fdr.version').__version__
     requires = ['numpy', 'netCDF4', 'pygac >=1.3.1', 'satpy >=0.21.0', 'pyyaml']
     test_requires = ['pytest']
     README = open('README.md', 'r').read()
     setup(name='pygac-fdr',
-          version=version,
+          version=pygac_fdr.__version__,
           description='Python package for creating a Fundamental Data Record (FDR) of AVHRR GAC '
                       'data using pygac',
           long_description=README,
