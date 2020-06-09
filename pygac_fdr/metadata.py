@@ -8,7 +8,7 @@ import sqlite3
 import xarray as xr
 
 
-LOG = logging.getLogger(__name__)
+LOG = logging.getLogger(__package__)
 
 
 class QualityFlags(IntEnum):
@@ -31,13 +31,16 @@ class MetadataCollector:
 
     def get_metadata(self, filenames):
         """Collect and complement metadata from the given level 1c files."""
+        LOG.info('Collecting metadata')
         df = pd.DataFrame(self._collect_metadata(filenames))
 
         # Set quality flags
+        LOG.info('Computing quality flags')
         df = df.groupby('platform').apply(lambda x: self._set_global_qual_flags(x))
         df = df.drop(['platform'], axis=1)
 
         # Calculate overlap
+        LOG.info('Computing orbit overlap')
         df = df.groupby('platform').apply(lambda x: self._calc_overlap(x))
 
         return df
@@ -63,6 +66,7 @@ class MetadataCollector:
         # TODO: Equator crossing time
         records = []
         for filename in filenames:
+            LOG.debug('Collecting metadata from {}'.format(filename))
             with xr.open_dataset(filename) as ds:
                 midnight_line = self._get_midnight_line(ds['acq_time'])
                 rec = {'platform':  ds.attrs['platform_name'],
@@ -193,6 +197,7 @@ class MetadataCollector:
         for i in range(0, len(df_ok)-1):
             this_row = df_ok.iloc[i]
             next_row = df_ok.iloc[i + 1]
+            LOG.debug('Computing overlap for {}'.format(this_row['filename']))
             if this_row['end_time'] >= next_row['start_time']:
                 # LRU cached method re-uses timestamps from the previous iteration.
                 this_ds = self._read_acq_time(this_row['filename'])
@@ -205,6 +210,7 @@ class MetadataCollector:
 def update_metadata(mda):
     """Update metadata in level 1c files."""
     for _, row in mda.iterrows():
+        LOG.debug('Updating metadata in {}'.format(row['filename']))
         with netCDF4.Dataset(filename=row['filename'], mode='r+') as nc:
             # Add global quality flag
             try:

@@ -21,9 +21,10 @@ import logging
 from pygac_fdr.reader import read_gac
 from pygac_fdr.writer import NetcdfWriter
 from pygac_fdr.config import read_config
+from pygac_fdr.utils import logging_on, LOGGER_NAME
 
 
-LOG = logging.getLogger('pygac_fdr')
+LOG = logging.getLogger(LOGGER_NAME)
 
 
 if __name__ == '__main__':
@@ -40,8 +41,11 @@ if __name__ == '__main__':
                         action='store_true',
                         help='Enable debug mode, i.e. exit on first error. Otherwise continue with '
                              'next file. Overrides entry in the configuration file.')
+    parser.add_argument('--verbose', action='store_true', help='Increase verbosity')
+    parser.add_argument('--log-all', action='store_true', help='Enable logging for all modules')
     parser.add_argument('filenames', nargs='+', help='AVHRR GAC level 1b files to be processed')
     args = parser.parse_args()
+    logging_on(logging.DEBUG if args.verbose else logging.INFO, for_all=args.log_all)
 
     # Read config file. Convenience: Allow overriding of frequently used arguments from the command
     # line.
@@ -53,7 +57,7 @@ if __name__ == '__main__':
 
     # Process files
     for filename in args.filenames:
-        LOG.info('Processing {}'.format(filename))
+        LOG.info('Processing file {}'.format(filename))
         try:
             scene = read_gac(filename, reader_kwargs=config['reader_kwargs'])
             writer = NetcdfWriter(global_attrs=config['global_attrs'])
@@ -61,4 +65,4 @@ if __name__ == '__main__':
         except Exception as err:
             if config['debug']:
                 raise
-            LOG.error('Error processing {}: {}'.format(filename, err))
+            LOG.error('Error processing file {}: {}'.format(filename, err))
