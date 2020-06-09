@@ -131,6 +131,39 @@ DEFAULT_ENCODING = {
 }  # refers to renamed datasets
 
 
+def get_gcmd_platform_name(pygac_name):
+    """Get platform name from NASA's Global Change Master Directory (GCMD).
+
+    FUTURE: Use a library for this. Tried "pythesint" but installation failed.
+    """
+    if pygac_name.startswith('noaa'):
+        nr = pygac_name[4:]
+        gcmd_name = '{}-{}'.format(pygac_name[:4], nr).upper()
+        gcmd_series = 'NOAA POES'
+    elif pygac_name.startswith('metop'):
+        letter = pygac_name[5:]
+        gcmd_name = '{}-{}'.format(pygac_name[:5], letter).upper()
+        gcmd_series = 'METOP'
+    elif pygac_name == 'tirosn':
+        gcmd_name = 'TIROS-N'
+        gcmd_series = 'TIROS'
+    else:
+        raise ValueError('Invalid platform name: {}'.format(pygac_name))
+
+    return '{} > {} > {}'.format('Earth Observation Satellites', gcmd_series, gcmd_name)
+
+
+def get_gcmd_instrument_name(pygac_name):
+    """Get instrument name from NASA's Global Change Master Directory (GCMD).
+
+    FUTURE: Use a library for this. Tried "pythesint" but installation failed.
+    """
+    cat = 'Earth Remote Sensing Instruments > Passive Remote Sensing > ' \
+          'Spectrometers/Radiometers > Imaging Spectrometers/Radiometers'
+    print(pygac_name)
+    return '{} > {}'.format(cat, pygac_name.upper())
+
+
 class NetcdfWriter:
     """Write AVHRR GAC scenes to netCDF."""
 
@@ -140,14 +173,11 @@ class NetcdfWriter:
                               'calibration',
                               'long_name',
                               'standard_name']
-    shared_attrs = ['sensor',
-                    'platform_name',
-                    'start_time',
-                    'end_time',
-                    'orbital_parameters',
-                    'orbit_number']
+    shared_attrs = ['orbital_parameters']
+    """Attributes shared between all datasets and to be included only once"""
 
     def_fname_fmt = 'avhrr_gac_fdr_v%(version)s_%(platform)s_%(start_time)s_%(end_time)s.nc'
+    time_fmt = '%Y%m%dT%H%M%SZ'
 
     def __init__(self, global_attrs=None, encoding=None, engine='netcdf4', fname_fmt=None):
         self.global_attrs = global_attrs if global_attrs is not None else {}
@@ -158,13 +188,17 @@ class NetcdfWriter:
         self.encoding = DEFAULT_ENCODING.copy()
         self.encoding.update(encoding if encoding is not None else {})
 
-    def _compose_filename(self, scene):
-        """Compose output filename."""
-        time_fmt = '%Y%m%dT%H%M%SZ'
+    def _get_temp_cov(self, scene):
+        """Get temporal coverage of the dataset."""
         tstart = scene['4']['acq_time'][0]
         tend = scene['4']['acq_time'][-1]
-        fields = {'start_time': tstart.dt.strftime(time_fmt).data,
-                  'end_time': tend.dt.strftime(time_fmt).data,
+        return tstart, tend
+
+    def _compose_filename(self, scene):
+        """Compose output filename."""
+        tstart, tend = self._get_temp_cov(scene)
+        fields = {'start_time': tstart.dt.strftime(self.time_fmt).data,
+                  'end_time': tend.dt.strftime(self.time_fmt).data,
                   'platform': scene['4'].attrs['platform_name'],
                   'version': pygac_fdr.__version__.replace('.', '-')}
         return self.fname_fmt % fields
@@ -174,13 +208,24 @@ class NetcdfWriter:
         # Start with scene attributes
         global_attrs = scene.attrs.copy()
 
-        # Transfer more attributes from channel 4 (could be any channel, these information are
-        # shared by all channels)
+        # Transfer attributes shared by all channels (using channel 4 here, but could be any
+        # channel)
+        ch4 = scene['4']
         for attr in self.shared_attrs:
-            global_attrs[attr] = scene['4'].attrs[attr]
+            global_attrs[attr] = ch4.attrs[attr]
 
         # Set some dynamic attributes
-        global_attrs.update({'creation_time': datetime.now().isoformat()})
+        tstart, tend = self._get_temp_cov(scene)
+        global_attrs.update({
+            'platform': get_gcmd_platform_name(ch4.attrs['platform_name']),
+            'instrument': get_gcmd_instrument_name(ch4.attrs['sensor']),
+            'date_created': datetime.now().isoformat(),
+            'start_time': tstart.dt.strftime(self.time_fmt).data,
+            'end_time': tend.dt.strftime(self.time_fmt).data
+        })
+        global_attrs['time_coverage_start'] = global_attrs['start_time']
+        global_attrs['time_coverage_end'] = global_attrs['end_time']
+        global_attrs.pop('sensor')
 
         # User defined static attributes take precedence over dynamic attributes.
         global_attrs.update(self.global_attrs)

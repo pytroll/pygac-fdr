@@ -7,8 +7,25 @@ reader_kwargs:
     tle_thresh: 1000
 #   calibration: my_coefs.json (TODO)
 global_attrs:
-    title: AVHRR GAC FDR
-    id: DOI:10.5676/EUM/AVHRR_GAC/V001
-    creator: EUMETSAT
-    creator_url: www.eumetsat.int
-    creator_email: ops@eumetsat.int
+    title: PyGAC AVHRR FDR
+    institution: EUMETSAT, ops@eumetsat.int
+    source: Top of Atmosphere Observation
+    history: Release 1
+    references: DOI:10.5676/EUM/AVHRR_GAC/V001
+    summary: >-
+        Fundamental Data Record (FDR) of measurements from the Advanced Very High Resolution Radiometer (AVHRR) at
+        full Global Area Coverage (GAC) resolution. AVHRR GAC measurements have been calibrated to reflectances and
+        brightness temperatures using the PyGAC software and PATMOS-X v2017 calibration coefficients. The data are
+        accompanied by additional metadata (such as orbit overlap or equator crossing time) as well as basic quality
+        indicators.
+    keywords: >-
+        ATMOSPHERE > ATMOSPHERIC RADIATION > REFLECTANCE,
+        ATMOSPHERE > ATMOSPHERIC RADIATION > OUTGOING LONGWAVE RADIATION,
+        SPECTRAL/ENGINEERING > INFRARED WAVELENGTHS,
+        SPECTRAL/ENGINEERING > VISIBLE WAVELENGTHS
+    comment:
+    processing_level: IC
+    processing_mode: R
+    disposition_mode: O
+
+

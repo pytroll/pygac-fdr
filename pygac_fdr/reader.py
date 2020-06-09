@@ -47,9 +47,13 @@ def read_gac(filename, reader_kwargs):
     scene.load(AUX_DATA)
 
     # Add additional metadata
-    scene.attrs['l1b_filename'] = os.path.basename(filename)
-    filename_info = scene.readers['avhrr_l1b_gaclac'].file_handlers['gac_lac_l1b'][0].filename_info
-    for key, val in filename_info.items():
-        scene.attrs['l1b_' + key] = val
+    fname_info = scene.readers['avhrr_l1b_gaclac'].file_handlers['gac_lac_l1b'][0].filename_info
+    orbit_number_end = fname_info['orbit_number'] // 100 * 100 + fname_info['end_orbit_last_digits']
+    scene.attrs.update({
+        'gac_filename': os.path.basename(filename),
+        'orbit_number_start': fname_info['orbit_number'],
+        'orbit_number_end': orbit_number_end,
+        'ground_station': fname_info['station']
+    })
 
     return scene
