@@ -19,10 +19,14 @@
 """Write AVHRR GAC level 1c data to netCDF."""
 
 from datetime import datetime
+import logging
 import os
 import satpy
+import xarray as xr
 import pygac_fdr
+from pygac_fdr.utils import LOGGER_NAME
 
+LOG = logging.getLogger(LOGGER_NAME)
 
 DATASET_NAMES = {
     '1': 'reflectance_channel_1',
@@ -207,6 +211,12 @@ class NetcdfWriter:
         scn_keys = set([key.name for key in scene.keys()])
         return dict([(key, self.encoding[key]) for key in enc_keys.intersection(scn_keys)])
 
+    def _append_gac_header(self, filename, header):
+        """Append raw GAC header to the given netCDF file."""
+        data_vars = dict([(name, header[name]) for name in header.dtype.names])
+        header = xr.Dataset(data_vars, attrs={'title': 'Raw GAC header'})
+        header.to_netcdf(filename, mode='a', group='gac_header')
+
     def write(self, scene, output_dir):
         """Write an AVHRR GAC scene to netCDF.
 
@@ -217,11 +227,14 @@ class NetcdfWriter:
         Returns:
             Names of files written.
         """
+        gac_header = scene['4'].attrs['gac_header'].copy()
         filename = os.path.join(output_dir, self._compose_filename(scene))
         global_attrs = self._get_global_attrs(scene)
         self._cleanup_attrs(scene)
         self._rename_datasets(scene)
         encoding = self._get_encoding(scene)
+        LOG.info('Writing calibrated scene to {}'.format(filename))
+
         scene.save_datasets(writer='cf',
                             filename=filename,
                             header_attrs=global_attrs,
@@ -229,5 +242,6 @@ class NetcdfWriter:
                             flatten_attrs=True,
                             encoding=encoding,
                             pretty=True)
+        self._append_gac_header(filename, gac_header)
 
         return filename
