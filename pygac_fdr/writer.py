@@ -21,10 +21,7 @@
 from datetime import datetime
 import os
 import satpy
-import pygac_fdr.version
-
-
-__version__ = pygac_fdr.version.__version__
+import pygac_fdr
 
 
 DATASET_NAMES = {
@@ -165,7 +162,7 @@ class NetcdfWriter:
         fields = {'start_time': tstart.dt.strftime(time_fmt).data,
                   'end_time': tend.dt.strftime(time_fmt).data,
                   'platform': scene['4'].attrs['platform_name'],
-                  'version': __version__.replace('.', '-')}
+                  'version': pygac_fdr.__version__.replace('.', '-')}
         return self.fname_fmt % fields
 
     def _get_global_attrs(self, scene):
