@@ -19,11 +19,12 @@
 """Write AVHRR GAC level 1c data to netCDF."""
 
 from datetime import datetime
+from distutils.version import StrictVersion
 import logging
 import os
 import satpy
+from string import Formatter
 import xarray as xr
-import pygac_fdr
 from pygac_fdr.utils import LOGGER_NAME
 
 LOG = logging.getLogger(LOGGER_NAME)
@@ -130,6 +131,21 @@ DEFAULT_ENCODING = {
                    'complevel': 4}
 }  # refers to renamed datasets
 
+METOP_PRE_LAUNCH_NUMBERS = {'a': 2, 'b': 1, 'c': 3}
+
+
+def get_platform_short_name(pygac_name):
+    """Get 3 character short name for the given platform."""
+    if pygac_name.startswith('noaa'):
+        nr = int(pygac_name[4:])
+        return 'N{:02d}'.format(nr)
+    elif pygac_name.startswith('metop'):
+        nr = METOP_PRE_LAUNCH_NUMBERS[pygac_name[5:]]
+        return 'M{:02d}'.format(nr)
+    elif pygac_name == 'tirosn':
+        # TODO: Correct?
+        return 'N05'
+
 
 def get_gcmd_platform_name(pygac_name):
     """Get platform name from NASA's Global Change Master Directory (GCMD).
@@ -176,7 +192,7 @@ class NetcdfWriter:
     shared_attrs = ['orbital_parameters']
     """Attributes shared between all datasets and to be included only once"""
 
-    def_fname_fmt = 'avhrr_gac_fdr_v%(version)s_%(platform)s_%(start_time)s_%(end_time)s.nc'
+    def_fname_fmt = 'avhrr_gac_fdr_{platform}_{start_time}_{end_time}.nc'
     time_fmt = '%Y%m%dT%H%M%SZ'
 
     def __init__(self, global_attrs=None, encoding=None, engine='netcdf4', fname_fmt=None):
@@ -194,14 +210,45 @@ class NetcdfWriter:
         tend = scene['4']['acq_time'][-1]
         return tstart, tend
 
+    def _get_integer_version(self, version):
+        """Convert version string to integer.
+
+        Examples:
+             1.2.3 ->  123
+            12.3.4 -> 1234
+
+        Minor/patch versions > 9 are not supported.
+        """
+        numbers = StrictVersion(version).version
+        if numbers[1] > 9 or numbers[2] > 9:
+            raise ValueError('Minor/patch versions > 9 are not supported')
+        return sum(10**i * v for i, v in enumerate(reversed(numbers)))
+
     def _compose_filename(self, scene):
         """Compose output filename."""
         tstart, tend = self._get_temp_cov(scene)
+        platform = get_platform_short_name(scene['4'].attrs['platform_name'])
+        version = self.global_attrs.get('version', '0.0.0')
+        version_int = self._get_integer_version(version)
+
+        # Dynamic field set
         fields = {'start_time': tstart.dt.strftime(self.time_fmt).data,
                   'end_time': tend.dt.strftime(self.time_fmt).data,
-                  'platform': scene['4'].attrs['platform_name'],
-                  'version': pygac_fdr.__version__.replace('.', '-')}
-        return self.fname_fmt % fields
+                  'platform': platform,
+                  'version': version,
+                  'version_int': version_int,
+                  'creation_time': datetime.now().strftime(self.time_fmt)}
+
+        # Search for additional static fields in global attributes
+        for _, field, _, _ in Formatter().parse(self.fname_fmt):
+            if field and field not in fields:
+                try:
+                    fields[field] = self.global_attrs[field]
+                except KeyError:
+                    raise KeyError('Cannot find filename component {} in global attributes'.format(
+                        field))
+
+        return self.fname_fmt.format(**fields)
 
     def _get_global_attrs(self, scene):
         """Compile global attributes."""

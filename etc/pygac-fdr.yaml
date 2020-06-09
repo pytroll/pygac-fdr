@@ -1,5 +1,5 @@
 output_dir: /data/avhrr_gac/output/
-fname_fmt: avhrr_gac_fdr_v%(version)s_%(platform)s_%(start_time)s_%(end_time)s.nc
+fname_fmt: AVHRR_PyGAC_FDR_{processing_level}_{platform}_{start_time}_{end_time}_{processing_mode}_{disposition_mode}_{creation_time}_{version_int:04d}.nc
 debug: True
 reader_kwargs:
     tle_dir: /data/avhrr_gac/tle
@@ -24,8 +24,14 @@ global_attrs:
         SPECTRAL/ENGINEERING > INFRARED WAVELENGTHS,
         SPECTRAL/ENGINEERING > VISIBLE WAVELENGTHS
     comment:
-    processing_level: IC
+    processing_level: 1C
     processing_mode: R
     disposition_mode: O
-
+    version: 1.0.0
+encoding:
+    qual_flags:
+        'dtype': 'int16'
+        '_FillValue': -32767
+        'zlib': True
+        'complevel': 4
 

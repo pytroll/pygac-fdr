@@ -60,7 +60,8 @@ if __name__ == '__main__':
         LOG.info('Processing file {}'.format(filename))
         try:
             scene = read_gac(filename, reader_kwargs=config['reader_kwargs'])
-            writer = NetcdfWriter(global_attrs=config['global_attrs'])
+            writer = NetcdfWriter(global_attrs=config['global_attrs'],
+                                  fname_fmt=config['fname_fmt'])
             writer.write(output_dir=config['output_dir'], scene=scene)
         except Exception as err:
             if config['debug']:
