@@ -32,7 +32,7 @@ AUX_DATA = ['latitude',
             'sun_sensor_azimuth_difference_angle']
 
 
-def read_gac(filename, reader_kwargs):
+def read_gac(filename, reader_kwargs=None):
     """Read and calibrate AVHRR GAC level 1b data using satpy.
 
     Args:

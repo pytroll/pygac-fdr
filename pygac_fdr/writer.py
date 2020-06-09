@@ -176,7 +176,6 @@ def get_gcmd_instrument_name(pygac_name):
     """
     cat = 'Earth Remote Sensing Instruments > Passive Remote Sensing > ' \
           'Spectrometers/Radiometers > Imaging Spectrometers/Radiometers'
-    print(pygac_name)
     return '{} > {}'.format(cat, pygac_name.upper())
 
 
@@ -194,15 +193,16 @@ class NetcdfWriter:
 
     def_fname_fmt = 'avhrr_gac_fdr_{platform}_{start_time}_{end_time}.nc'
     time_fmt = '%Y%m%dT%H%M%SZ'
+    def_engine = 'netcdf4'
 
-    def __init__(self, global_attrs=None, encoding=None, engine='netcdf4', fname_fmt=None):
-        self.global_attrs = global_attrs if global_attrs is not None else {}
-        self.engine = engine
-        self.fname_fmt = fname_fmt if fname_fmt is not None else self.def_fname_fmt
+    def __init__(self, global_attrs=None, encoding=None, engine=None, fname_fmt=None):
+        self.global_attrs = global_attrs or {}
+        self.engine = engine or self.def_engine
+        self.fname_fmt = fname_fmt or self.def_fname_fmt
 
         # User defined encoding takes precedence over default encoding
         self.encoding = DEFAULT_ENCODING.copy()
-        self.encoding.update(encoding if encoding is not None else {})
+        self.encoding.update(encoding or {})
 
     def _get_temp_cov(self, scene):
         """Get temporal coverage of the dataset."""
@@ -309,7 +309,7 @@ class NetcdfWriter:
         header = xr.Dataset(data_vars, attrs={'title': 'Raw GAC header'})
         header.to_netcdf(filename, mode='a', group='gac_header')
 
-    def write(self, scene, output_dir):
+    def write(self, scene, output_dir=None):
         """Write an AVHRR GAC scene to netCDF.
 
         Args:
@@ -319,6 +319,7 @@ class NetcdfWriter:
         Returns:
             Names of files written.
         """
+        output_dir = output_dir or '.'
         gac_header = scene['4'].attrs['gac_header'].copy()
         filename = os.path.join(output_dir, self._compose_filename(scene))
         global_attrs = self._get_global_attrs(scene)

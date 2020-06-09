@@ -1,12 +1,14 @@
-output_dir: /data/avhrr_gac/output/
-fname_fmt: AVHRR_PyGAC_FDR_{processing_level}_{platform}_{start_time}_{end_time}_{processing_mode}_{disposition_mode}_{creation_time}_{version_int:04d}.nc
-debug: True
-reader_kwargs:
-    tle_dir: /data/avhrr_gac/tle
-    tle_name: TLE_%(satname)s.txt
-    tle_thresh: 1000
-#   calibration: my_coefs.json (TODO)
-global_attrs:
+controls:
+    debug: True
+    reader_kwargs:
+        tle_dir: /data/avhrr_gac/tle
+        tle_name: TLE_%(satname)s.txt
+        tle_thresh: 1000
+    #   calibration: my_coefs.json (TODO)
+output:
+    output_dir: /data/avhrr_gac/output/
+    fname_fmt: AVHRR_PyGAC_FDR_{processing_level}_{platform}_{start_time}_{end_time}_{processing_mode}_{disposition_mode}_{creation_time}_{version_int:04d}.nc
+metadata:
     title: PyGAC AVHRR FDR
     institution: EUMETSAT, ops@eumetsat.int
     source: Top of Atmosphere Observation
@@ -28,10 +30,11 @@ global_attrs:
     processing_mode: R
     disposition_mode: O
     version: 1.0.0
-encoding:
-    qual_flags:
-        'dtype': 'int16'
-        '_FillValue': -32767
-        'zlib': True
-        'complevel': 4
-
+netcdf:
+    engine: netcdf4
+    encoding:
+        qual_flags:
+            'dtype': 'int16'
+            '_FillValue': -32767
+            'zlib': True
+            'complevel': 4
