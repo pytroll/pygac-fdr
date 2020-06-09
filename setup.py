@@ -18,15 +18,20 @@
 
 import os
 from setuptools import find_packages, setup
-import pygac_fdr
+try:
+    # HACK: https://github.com/pypa/setuptools_scm/issues/190#issuecomment-351181286
+    # Stop setuptools_scm from including all repository files
+    import setuptools_scm.integration
+    setuptools_scm.integration.find_files = lambda _: []
+except ImportError:
+    pass
 
 
 if __name__ == '__main__':
-    requires = ['numpy', 'netCDF4', 'pygac >=1.3.1', 'satpy >=0.21.0', 'pyyaml']
+    requires = ['setuptools_scm', 'numpy', 'netCDF4', 'pygac >=1.3.1', 'satpy >=0.21.0', 'pyyaml']
     test_requires = ['pytest']
     README = open('README.md', 'r').read()
     setup(name='pygac-fdr',
-          version=pygac_fdr.__version__,
           description='Python package for creating a Fundamental Data Record (FDR) of AVHRR GAC '
                       'data using pygac',
           long_description=README,
