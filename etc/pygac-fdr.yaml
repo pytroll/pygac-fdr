@@ -12,7 +12,7 @@ metadata:
     title: PyGAC AVHRR FDR
     institution: EUMETSAT, ops@eumetsat.int
     source: Top of Atmosphere Observation
-    history: Release 1
+    history:
     references: DOI:10.5676/EUM/AVHRR_GAC/V001
     summary: >-
         Fundamental Data Record (FDR) of measurements from the Advanced Very High Resolution Radiometer (AVHRR) at
@@ -30,6 +30,7 @@ metadata:
     processing_mode: R
     disposition_mode: O
     version: 1.0.0
+    acknowledgement: Developed in cooperation with colleagues from SMHI, DWD and the PyTroll community.
 netcdf:
     engine: netcdf4
     encoding:
