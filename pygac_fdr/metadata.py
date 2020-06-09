@@ -69,7 +69,7 @@ class MetadataCollector:
             LOG.debug('Collecting metadata from {}'.format(filename))
             with xr.open_dataset(filename) as ds:
                 midnight_line = self._get_midnight_line(ds['acq_time'])
-                rec = {'platform':  ds.attrs['platform_name'],
+                rec = {'platform':  ds.attrs['platform'],
                        'start_time': ds['acq_time'].values[0],
                        'end_time': ds['acq_time'].values[-1],
                        'along_track': ds.dims['y'],
