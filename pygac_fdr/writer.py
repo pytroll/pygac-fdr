@@ -41,6 +41,8 @@ DATASET_NAMES = {
 FILL_VALUE_INT16 = -32767
 FILL_VALUE_INT32 = -2147483648
 DEFAULT_ENCODING = {
+    'acq_time': {'units': 'seconds since 1970-01-01 00:00:00',
+                 'calendar': 'standard'},
     'reflectance_channel_1': {'dtype': 'int16',
                               'scale_factor': 0.01,
                               'add_offset': 0,
@@ -301,6 +303,8 @@ class NetcdfWriter:
         # The CF writer doesn't like that.
         enc_keys = set(self.encoding.keys())
         scn_keys = set([key.name for key in scene.keys()])
+        scn_keys = scn_keys.union(
+            set([coord for key in scene.keys() for coord in scene[key].coords]))
         return dict([(key, self.encoding[key]) for key in enc_keys.intersection(scn_keys)])
 
     def _append_gac_header(self, filename, header):
