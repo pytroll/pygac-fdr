@@ -63,7 +63,8 @@ if __name__ == '__main__':
             writer = NetcdfWriter(global_attrs=config.get('metadata'),
                                   fname_fmt=config['output'].get('fname_fmt'),
                                   encoding=config['netcdf'].get('encoding'),
-                                  engine=config['netcdf'].get('engine'))
+                                  engine=config['netcdf'].get('engine'),
+                                  debug=config['controls'].get('debug'))
             writer.write(output_dir=config['output'].get('output_dir'), scene=scene)
         except Exception as err:
             if config['controls']['debug']:

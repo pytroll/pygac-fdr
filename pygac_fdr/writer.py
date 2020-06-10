@@ -197,10 +197,15 @@ class NetcdfWriter:
     time_fmt = '%Y%m%dT%H%M%SZ'
     def_engine = 'netcdf4'
 
-    def __init__(self, global_attrs=None, encoding=None, engine=None, fname_fmt=None):
+    def __init__(self, global_attrs=None, encoding=None, engine=None, fname_fmt=None, debug=None):
+        """
+        Args:
+            debug: If True, use constant creation time in output filenames.
+        """
         self.global_attrs = global_attrs or {}
         self.engine = engine or self.def_engine
         self.fname_fmt = fname_fmt or self.def_fname_fmt
+        self.debug = bool(debug)
 
         # User defined encoding takes precedence over default encoding
         self.encoding = DEFAULT_ENCODING.copy()
@@ -223,23 +228,29 @@ class NetcdfWriter:
         """
         numbers = StrictVersion(version).version
         if numbers[1] > 9 or numbers[2] > 9:
-            raise ValueError('Minor/patch versions > 9 are not supported')
+            raise ValueError('Invalid version number: {}. Minor/patch versions > 9 are not '
+                             'supported'.format(version))
         return sum(10**i * v for i, v in enumerate(reversed(numbers)))
 
     def _compose_filename(self, scene):
         """Compose output filename."""
+        # Dynamic fields
+        if self.debug:
+            # In debug mode, use a constant creation time to prevent a different filename in each
+            # run
+            creation_time = datetime(2020, 1, 1)
+        else:
+            creation_time = datetime.now()
         tstart, tend = self._get_temp_cov(scene)
         platform = get_platform_short_name(scene['4'].attrs['platform_name'])
         version = self.global_attrs.get('version', '0.0.0')
         version_int = self._get_integer_version(version)
-
-        # Dynamic field set
         fields = {'start_time': tstart.dt.strftime(self.time_fmt).data,
                   'end_time': tend.dt.strftime(self.time_fmt).data,
                   'platform': platform,
                   'version': version,
                   'version_int': version_int,
-                  'creation_time': datetime.now().strftime(self.time_fmt)}
+                  'creation_time': creation_time.strftime(self.time_fmt)}
 
         # Search for additional static fields in global attributes
         for _, field, _, _ in Formatter().parse(self.fname_fmt):
@@ -331,7 +342,6 @@ class NetcdfWriter:
         self._rename_datasets(scene)
         encoding = self._get_encoding(scene)
         LOG.info('Writing calibrated scene to {}'.format(filename))
-
         scene.save_datasets(writer='cf',
                             filename=filename,
                             header_attrs=global_attrs,
