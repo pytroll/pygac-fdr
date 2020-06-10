@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import sqlite3
 import xarray as xr
+from xarray.coding.times import encode_cf_datetime
 
 
 LOG = logging.getLogger(__package__)
@@ -19,7 +20,39 @@ class QualityFlags(IntEnum):
     REDUNDANT = 4  # subset of another file
 
 
-FILL_VALUE_LINE = -9999
+FILL_VALUE_INT = -9999
+FILL_VALUE_FLOAT = -9999.
+
+ADDITIONAL_METADATA = [
+    {'name': 'cut_line_overlap',
+     'long_name': 'Scanline (0-based) where to cut this orbit in order to remove '
+                  'overlap with the subsequent orbit',
+     'dtype': np.int16,
+     'fill_value': FILL_VALUE_INT},
+    {'name': 'midnight_line',
+     'long_name': 'Scanline (0-based) where UTC timestamp crosses the dateline',
+     'dtype': np.int16,
+     'fill_value': FILL_VALUE_INT},
+    {'name': 'equator_crossing_longitude',
+     'long_name': 'Longitude where ascending node crosses the equator',
+     'units': 'degrees_east',
+     'dtype': np.float64,
+     'fill_value': FILL_VALUE_FLOAT},
+    {'name': 'equator_crossing_time',
+     'long_name': 'UTC time when ascending node crosses the equator',
+     'units': 'seconds since 1970-01-01 00:00:00',
+     'calendar': 'standard',
+     'dtype': np.float64,
+     'fill_value': FILL_VALUE_INT},
+    {'name': 'global_quality_flag',
+     'long_name': 'Global quality flag',
+     'comment': 'If this flag is everything else than "ok", it is recommended not '
+                'to use the file.',
+     'flag_values': [flag.value for flag in QualityFlags.__members__.values()],
+     'flag_meanings': [name.lower() for name in QualityFlags.__members__.keys()],
+     'dtype': np.uint8,
+     'fill_value': None}
+]
 
 
 class MetadataCollector:
@@ -57,25 +90,27 @@ class MetadataCollector:
         with sqlite3.connect(dbfile) as con:
             mda = pd.read_sql('select * from metadata', con)
         mda = mda.set_index(['platform', 'level_1'])
-        mda['start_time'] = mda['start_time'].astype('datetime64[ns]')
-        mda['end_time'] = mda['end_time'].astype('datetime64[ns]')
+        for time_col in ['start_time', 'end_time', 'equator_crossing_time']:
+            mda[time_col] = mda[time_col].astype('datetime64[ns]')
         return mda
 
     def _collect_metadata(self, filenames):
         """Collect metadata from the given level 1c files."""
-        # TODO: Equator crossing time
         records = []
         for filename in filenames:
             LOG.debug('Collecting metadata from {}'.format(filename))
             with xr.open_dataset(filename) as ds:
                 midnight_line = self._get_midnight_line(ds['acq_time'])
-                rec = {'platform':  ds.attrs['platform'],
+                eq_cross_lon, eq_cross_time = self._get_equator_crossing(ds)
+                rec = {'platform':  ds.attrs['platform'].split('>')[-1].strip(),
                        'start_time': ds['acq_time'].values[0],
                        'end_time': ds['acq_time'].values[-1],
                        'along_track': ds.dims['y'],
                        'filename': filename,
+                       'equator_crossing_longitude': eq_cross_lon,
+                       'equator_crossing_time': eq_cross_time,
                        'midnight_line': midnight_line,
-                       'cut_line_overlap': FILL_VALUE_LINE,
+                       'cut_line_overlap': np.nan,  # will be computed in a postprocessing
                        'global_quality_flag': QualityFlags.OK}
                 records.append(rec)
         return records
@@ -94,8 +129,25 @@ class MetadataCollector:
             if len(incr) > 1:
                 LOG.warning('UTC date increases more than once. Choosing the first '
                             'occurence as midnight scanline.')
-            return incr[0]
-        return FILL_VALUE_LINE
+            return float(incr[0])
+        return np.nan
+
+    def _get_equator_crossing(self, ds):
+        """Determine where the ascending node crosses the equator.
+
+        Returns:
+            Longitude and UTC time
+        """
+        # Use coordinates in the middle of the swath
+        mid_swath = ds['latitude'].shape[1] // 2
+        lat = ds['latitude'].isel(x=mid_swath)
+        lat_shift = lat.shift(y=-1, fill_value=lat.isel(y=-1))
+        sign_change = np.sign(lat_shift) != np.sign(lat)
+        ascending = lat_shift > lat
+        lat_eq = lat.where(sign_change & ascending, drop=True)
+        if len(lat_eq) > 0:
+            return lat_eq['longitude'].values[0], lat_eq['acq_time'].values[0]
+        return np.nan, np.datetime64('NaT')
 
     def _set_redundant_flag(self, df, window=20):
         """Flag redundant orbits in the given data frame.
@@ -208,35 +260,38 @@ class MetadataCollector:
 
 
 def update_metadata(mda):
-    """Update metadata in level 1c files."""
+    """Add additional metadata to level 1c files."""
+    # Since xarray cannot modify files in-place, use netCDF4 directly. See
+    # https://github.com/pydata/xarray/issues/2029.
     for _, row in mda.iterrows():
         LOG.debug('Updating metadata in {}'.format(row['filename']))
         with netCDF4.Dataset(filename=row['filename'], mode='r+') as nc:
-            # Add global quality flag
-            try:
-                nc_qual_flag = nc.createVariable('global_quality_flag', datatype=np.uint8)
-            except RuntimeError:
-                nc_qual_flag = nc.variables['global_quality_flag']
-            nc_qual_flag[:] = row['global_quality_flag']
-            attrs = {'long_name': 'Global quality flag',
-                     'comment': 'If this flag is everything else than "ok", it is recommended not '
-                                'to use the file.',
-                     'flag_values': [flag.value for flag in QualityFlags.__members__.values()],
-                     'flag_meanings': [name.lower() for name in QualityFlags.__members__.keys()]}
-            for key, val in attrs.items():
-                nc_qual_flag.setncattr(key, val)
+            nc_acq_time = nc.variables['acq_time']
+            for mda in ADDITIONAL_METADATA:
+                mda = mda.copy()
+                var_name = mda.pop('name')
+                fill_value = mda.pop('fill_value')
 
-            # Add cut/midnight line
-            special_lines = {
-                'cut_line_overlap': 'Scanline (0-based) where to cut this orbit in order to remove '
-                                    'overlap with the subsequent orbit',
-                'midnight_line': 'Scanline (0-based) where UTC timestamp crosses the dateline'
-            }
-            for var_name, long_name in special_lines.items():
+                # Create nc variable
                 try:
-                    nc_var = nc.createVariable(var_name, datatype=np.int16,
-                                               fill_value=FILL_VALUE_LINE)
+                    nc_var = nc.createVariable(var_name, datatype=mda.pop('dtype'),
+                                               fill_value=fill_value)
                 except RuntimeError:
+                    # Variable already there
                     nc_var = nc.variables[var_name]
-                nc_var[:] = row[var_name]
-                nc_var.setncattr('long_name', long_name)
+
+                # Write data to nc variable. Since netCDF4 cannot handle NaN nor NaT, disable
+                # auto-masking, and set null-data to fill value manually. Furthermore, match
+                # timestamp encoding with the acq_time variable.
+                data = row[var_name]
+                nc_var.set_auto_mask(False)
+                if pd.isnull(data):
+                    data = fill_value
+                elif isinstance(data, pd.Timestamp):
+                    data = encode_cf_datetime(data, units=nc_acq_time.units,
+                                              calendar=nc_acq_time.calendar)[0]
+                nc_var[:] = data
+
+                # Set attributes of nc variable
+                for key, val in mda.items():
+                    nc_var.setncattr(key, val)
