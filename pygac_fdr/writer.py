@@ -25,6 +25,8 @@ import os
 import satpy
 from string import Formatter
 import xarray as xr
+import pygac
+import pygac_fdr
 from pygac_fdr.utils import LOGGER_NAME
 
 LOG = logging.getLogger(LOGGER_NAME)
@@ -186,7 +188,6 @@ class NetcdfWriter:
 
     dataset_specific_attrs = ['units',
                               'wavelength',
-                              'resolution',
                               'calibration',
                               'long_name',
                               'standard_name']
@@ -276,12 +277,26 @@ class NetcdfWriter:
 
         # Set some dynamic attributes
         tstart, tend = self._get_temp_cov(scene)
+        resol = ch4.attrs['resolution']  # all channels have the same resolution
         global_attrs.update({
             'platform': get_gcmd_platform_name(ch4.attrs['platform_name']),
             'instrument': get_gcmd_instrument_name(ch4.attrs['sensor']),
             'date_created': datetime.now().isoformat(),
             'start_time': tstart.dt.strftime(self.time_fmt).data,
-            'end_time': tend.dt.strftime(self.time_fmt).data
+            'end_time': tend.dt.strftime(self.time_fmt).data,
+            'sun_earth_distance_correction_factor': ch4.attrs['sun_earth_distance_correction_factor'],
+            'version_pygac': pygac.__version__,
+            'version_pygac_fdr': pygac_fdr.__version__,
+            'version_satpy': satpy.__version__,
+            'version_calib_coeffs': 'TODO',
+            'geospatial_lon_min': scene['longitude'].min().values,
+            'geospatial_lon_max': scene['longitude'].max().values,
+            'geospatial_lon_units': 'degrees_east',
+            'geospatial_lat_min': scene['latitude'].min().values,
+            'geospatial_lat_max': scene['latitude'].max().values,
+            'geospatial_lat_units': 'degrees_north',
+            'geospatial_lon_resolution': '{} meters'.format(resol),
+            'geospatial_lat_resolution': '{} meters'.format(resol)
         })
         global_attrs['time_coverage_start'] = global_attrs['start_time']
         global_attrs['time_coverage_end'] = global_attrs['end_time']

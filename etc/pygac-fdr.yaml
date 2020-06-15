@@ -34,12 +34,11 @@ metadata:
         ATMOSPHERE > ATMOSPHERIC RADIATION > OUTGOING LONGWAVE RADIATION,
         SPECTRAL/ENGINEERING > INFRARED WAVELENGTHS,
         SPECTRAL/ENGINEERING > VISIBLE WAVELENGTHS
-    comment:
+    comment: Developed in cooperation with EUM CM SAF and the PyTroll community.
     processing_level: 1C
     processing_mode: R
     disposition_mode: O
     version: 1.0.0
-    acknowledgement: Developed in cooperation with colleagues from SMHI, DWD and the PyTroll community.
 netcdf:
     engine: netcdf4
     encoding:
