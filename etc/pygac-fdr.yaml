@@ -4,7 +4,7 @@ controls:
         tle_dir: /data/avhrr_gac/tle
         tle_name: TLE_%(satname)s.txt
         tle_thresh: 1000
-    #   calibration: my_coefs.json (TODO)
+        calibration: /data/avhrr_gac/calibration.json
 output:
     output_dir: /data/avhrr_gac/output/
     fname_fmt: AVHRR_PyGAC_FDR_{processing_level}_{platform}_{start_time}_{end_time}_{processing_mode}_{disposition_mode}_{creation_time}_{version_int:04d}.nc
