@@ -13,7 +13,6 @@ metadata:
     title: AVHRR GAC L1C FDR
     institution: EUMETSAT, ops@eumetsat.int
     source: Top of Atmosphere Observation
-    history:
     references: >-
         Devasthale, A., M. Raspaud, C. Schlundt, T. Hanschmann, S. Finkensieper, A. Dybbroe, S. Hörnquist,
         N. Håkansson, M. Stengel and K-G. Karlsson. "PyGAC: An open-source, community-driven Python interface to
@@ -34,11 +33,14 @@ metadata:
         ATMOSPHERE > ATMOSPHERIC RADIATION > OUTGOING LONGWAVE RADIATION,
         SPECTRAL/ENGINEERING > INFRARED WAVELENGTHS,
         SPECTRAL/ENGINEERING > VISIBLE WAVELENGTHS
+    keywords_vocabulary: GCMD Science Keywords, Version 9.1
     comment: Developed in cooperation with EUM CM SAF and the PyTroll community.
     processing_level: 1C
     processing_mode: R
     disposition_mode: O
     version: 1.0.0
+    Conventions: ACDD-1.3
+    history:
 netcdf:
     engine: netcdf4
     encoding:

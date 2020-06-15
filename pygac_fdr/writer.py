@@ -21,6 +21,7 @@
 from datetime import datetime
 from distutils.version import StrictVersion
 import logging
+import netCDF4
 import os
 import satpy
 from string import Formatter
@@ -333,8 +334,15 @@ class NetcdfWriter:
             set([coord for key in scene.keys() for coord in scene[key].coords]))
         return dict([(key, self.encoding[key]) for key in enc_keys.intersection(scn_keys)])
 
+    def _fix_global_attrs(self, filename, global_attrs):
+        LOG.info('Fixing global attributes')
+        with netCDF4.Dataset(filename, mode='a') as nc:
+            # Satpy's CF writer overrides Conventions attribute
+            nc.Conventions = ', '.join([nc.Conventions, global_attrs['Conventions']])
+
     def _append_gac_header(self, filename, header):
         """Append raw GAC header to the given netCDF file."""
+        LOG.info('Appending GAC header')
         data_vars = dict([(name, header[name]) for name in header.dtype.names])
         header = xr.Dataset(data_vars, attrs={'title': 'Raw GAC header'})
         header.to_netcdf(filename, mode='a', group='gac_header')
@@ -350,8 +358,8 @@ class NetcdfWriter:
             Names of files written.
         """
         output_dir = output_dir or '.'
-        gac_header = scene['4'].attrs['gac_header'].copy()
         filename = os.path.join(output_dir, self._compose_filename(scene))
+        gac_header = scene['4'].attrs['gac_header'].copy()
         global_attrs = self._get_global_attrs(scene)
         self._cleanup_attrs(scene)
         self._rename_datasets(scene)
@@ -365,5 +373,5 @@ class NetcdfWriter:
                             encoding=encoding,
                             pretty=True)
         self._append_gac_header(filename, gac_header)
-
+        self._fix_global_attrs(filename, global_attrs)
         return filename
