@@ -14,10 +14,11 @@ LOG = logging.getLogger(__package__)
 
 class QualityFlags(IntEnum):
     OK = 0
-    TOO_SHORT = 1  # too few scanlines
-    TOO_LONG = 2  # (end_time - start_time) unrealistically large
-    DUPLICATE = 3  # identical record from different ground stations
-    REDUNDANT = 4  # subset of another file
+    INVALID_TIMESTAMP = 1  # end time < start time or timestamp out of valid range
+    TOO_SHORT = 2  # not enough scanlines or duration too short
+    TOO_LONG = 3  # (end_time - start_time) unrealistically large
+    DUPLICATE = 4  # identical record from different ground stations
+    REDUNDANT = 5  # subset of another file
 
 
 FILL_VALUE_INT = -9999
@@ -58,14 +59,25 @@ ADDITIONAL_METADATA = [
 class MetadataCollector:
     """Collect and complement metadata from level 1c files.
 
-    Additional metadata include global quality flags as well as cut information to remove
-    orbit overlap.
+    Additional metadata include global quality flags as well equator crossing time and
+    overlap information.
     """
+    def __init__(self, min_num_lines=50, min_duration=5):
+        """
+        Args:
+            min_num_lines: Minimum number of scanlines for a file to be considered ok. Otherwise
+                           it will flagged as too short.
+            min_duration: Minimum duration (in minutes) for a file to be considered ok. Otherwise
+                          it will flagged as too short.
+        """
+        self.min_num_lines = min_num_lines
+        self.min_duration = np.timedelta64(min_duration, 'm')
 
     def get_metadata(self, filenames):
         """Collect and complement metadata from the given level 1c files."""
         LOG.info('Collecting metadata')
         df = pd.DataFrame(self._collect_metadata(filenames))
+        df.sort_values(by=['start_time', 'end_time'], inplace=True)
 
         # Set quality flags
         LOG.info('Computing quality flags')
@@ -73,7 +85,7 @@ class MetadataCollector:
         df = df.drop(['platform'], axis=1)
 
         # Calculate overlap
-        LOG.info('Computing orbit overlap')
+        LOG.info('Computing overlap')
         df = df.groupby('platform').apply(lambda x: self._calc_overlap(x))
 
         return df
@@ -189,35 +201,50 @@ class MetadataCollector:
         df.loc[redundant.index, 'global_quality_flag'] = QualityFlags.REDUNDANT
 
     def _set_duplicate_flag(self, df):
-        """Flag duplicate orbits in the given data frame.
+        """Flag duplicate files in the given data frame.
 
-        Two orbits are considered equal if platform, start- and end-time are identical. This happens
-        if the same orbit has been transferred to two different ground stations.
+        Two files are considered equal if platform, start- and end-time are identical. This happens
+        if the same measurement has been transferred to two different ground stations.
         """
         gs_dupl = df.duplicated(subset=['platform', 'start_time', 'end_time'],
                                 keep='first')
         df.loc[gs_dupl, 'global_quality_flag'] = QualityFlags.DUPLICATE
 
-    def _set_too_short_flag(self, df, min_lines=50):
-        """Flag short orbits in the given data frame.
+    def _set_invalid_timestamp_flag(self, df):
+        """Flag files with invalid timestamps.
 
-        TODO: Is this necessary or do we want to keep these records?
-
-        Args:
-            min_lines (int): Minimum number of scanlines for an orbit to be considered ok. Otherwise
-                             it will flagged as too short.
+        Timestamps are considered invalid if they are outside the valid range (1970-2030) or if
+        end_time < start_time.
         """
-        too_short = df['along_track'] < min_lines
+        valid_min = np.datetime64('1970-01-01 00:00')
+        valid_max = np.datetime64('2030-01-01 00:00')
+        out_of_range = ((df['start_time'] < valid_min) |
+                        (df['start_time'] > valid_max) |
+                        (df['end_time'] < valid_min) |
+                        (df['end_time'] > valid_max))
+        neg_dur = df['end_time'] < df['start_time']
+        invalid = neg_dur | out_of_range
+        df.loc[invalid, 'global_quality_flag'] = QualityFlags.INVALID_TIMESTAMP
+
+    def _set_too_short_flag(self, df):
+        """Flag files considered too short.
+
+        That means either not enough scanlines or duration is too short.
+        """
+        too_short = (
+                (df['along_track'] < self.min_num_lines) |
+                (abs(df['end_time'] - df['start_time']) < self.min_duration)
+        )
         df.loc[too_short, 'global_quality_flag'] = QualityFlags.TOO_SHORT
 
     def _set_too_long_flag(self, df, max_length=120):
-        """Flag orbits where (end_time - start_time) is unrealistically large.
+        """Flag files where (end_time - start_time) is unrealistically large.
 
         This happens if the timestamps of the first or last scanline are corrupted. Flag these
-        cases to prevent that subsequent orbits are erroneously flagged as redundant.
+        cases to prevent that subsequent files are erroneously flagged as redundant.
 
         Args:
-            max_length: Maximum length (minutes) for an orbit to be considered ok. Otherwise it
+            max_length: Maximum length (minutes) for a file to be considered ok. Otherwise it
                         will be flagged as too long.
         """
         max_length = np.timedelta64(max_length, 'm')
@@ -226,8 +253,8 @@ class MetadataCollector:
 
     def _set_global_qual_flags(self, df):
         """Set global quality flags."""
-        df.sort_values(by=['start_time', 'end_time'], inplace=True)
         df = df.reset_index(drop=True)
+        self._set_invalid_timestamp_flag(df)
         self._set_too_short_flag(df)
         self._set_too_long_flag(df)
         self._set_redundant_flag(df)
