@@ -25,9 +25,14 @@ FILL_VALUE_INT = -9999
 FILL_VALUE_FLOAT = -9999.
 
 ADDITIONAL_METADATA = [
-    {'name': 'cut_line_overlap',
-     'long_name': 'Scanline (0-based) where to cut this orbit in order to remove '
-                  'overlap with the subsequent orbit',
+    {'name': 'overlap_free_start',
+     'long_name': 'First scanline (0-based) of the overlap-free part of this file. Scanlines '
+                  'before that also appear in the preceding file.',
+     'dtype': np.int16,
+     'fill_value': FILL_VALUE_INT},
+    {'name': 'overlap_free_end',
+     'long_name': 'Last scanline (0-based) of the overlap-free part of this file. Scanlines '
+                  'hereafter also appear in the subsequent file.',
      'dtype': np.int16,
      'fill_value': FILL_VALUE_INT},
     {'name': 'midnight_line',
@@ -112,7 +117,7 @@ class MetadataCollector:
         for filename in filenames:
             LOG.debug('Collecting metadata from {}'.format(filename))
             with xr.open_dataset(filename) as ds:
-                midnight_line = self._get_midnight_line(ds['acq_time'])
+                midnight_line = np.float64(self._get_midnight_line(ds['acq_time']))
                 eq_cross_lon, eq_cross_time = self._get_equator_crossing(ds)
                 rec = {'platform':  ds.attrs['platform'].split('>')[-1].strip(),
                        'start_time': ds['acq_time'].values[0],
@@ -122,7 +127,8 @@ class MetadataCollector:
                        'equator_crossing_longitude': eq_cross_lon,
                        'equator_crossing_time': eq_cross_time,
                        'midnight_line': midnight_line,
-                       'cut_line_overlap': np.nan,  # will be computed in a postprocessing
+                       'overlap_free_start': np.nan,
+                       'overlap_free_end': np.nan,
                        'global_quality_flag': QualityFlags.OK}
                 records.append(rec)
         return records
@@ -135,13 +141,13 @@ class MetadataCollector:
                  None, else.
         """
         d0 = np.datetime64('1970-01-01', 'D')
-        days = (acq_time.astype('datetime64[D]') - d0).astype(np.int64)
+        days = (acq_time.astype('datetime64[D]') - d0) / np.timedelta64(1, 'D')
         incr = np.where(np.diff(days) == 1)[0]
         if len(incr) >= 1:
             if len(incr) > 1:
                 LOG.warning('UTC date increases more than once. Choosing the first '
                             'occurence as midnight scanline.')
-            return float(incr[0])
+            return incr[0]
         return np.nan
 
     def _get_equator_crossing(self, ds):
@@ -162,25 +168,31 @@ class MetadataCollector:
         return np.nan, np.datetime64('NaT')
 
     def _set_redundant_flag(self, df, window=20):
-        """Flag redundant orbits in the given data frame.
+        """Flag redundant files in the given data frame.
 
-        An orbit is called redundant if it is entirely overlapped by one of its predecessors
+        An file is called redundant if it is entirely overlapped by one of its predecessors
         (in time).
 
         Args:
-            window (int): Number of preceding orbits to be taken into account
+            window (int): Number of preceding files to be taken into account
+
+        TODO: Identify the following case as redundant, as it causes overlap_free_start to be
+        greater than overlap_free_end:
+
+        |-------|  previous file
+            |--------|  current file
+              |---------|  subsequent file
         """
         def is_redundant(end_times):
             start_times = end_times.index.get_level_values('start_time').to_numpy()
             end_times = end_times.to_numpy()
-            redundant = (start_times[-1] >= start_times) & \
-                        (end_times[-1] <= end_times)
+            redundant = (start_times[-1] >= start_times) & (end_times[-1] <= end_times)
             redundant[-1] = False
             return redundant.any()
 
-        # Only take into account orbits that passed the QC check so far (e.g. we don't want
-        # orbits flagged as TOO_LONG to overlap many subsequent orbits)
-        df_ok = df[df['global_quality_flag'] == QualityFlags.OK]
+        # Only take into account files that passed the QC check so far (e.g. we don't want
+        # files flagged as TOO_LONG to overlap many subsequent files)
+        df_ok = df[df['global_quality_flag'] == QualityFlags.OK].copy()
 
         # DataFrame.rolling is an elegant solution, but it has two drawbacks:
         # a) It only supports numerical data types. Workaround: Convert timestamps to integer.
@@ -261,28 +273,46 @@ class MetadataCollector:
         self._set_duplicate_flag(df)
         return df
 
-    @lru_cache(maxsize=2)
-    def _read_acq_time(self, filename):
-        ds = xr.open_dataset(filename)
-        return ds['acq_time'].compute()
+    def _calc_overlap(self, df, open_end=False):
+        """Compare timestamps of neighbouring files and determine overlap.
 
-    def _calc_overlap(self, df):
-        """Compare timestamps of two consecutive orbits and determine where they overlap.
-
-        Cut the first one in the end so that there is no overlap. This reads the timestamps once
-        from all files.
+        For each file compare its timestamps with the start/end timestamps of the preceding and
+        subsequent files. Determine the overlap-free part of the file and set the corresponding
+        overlap_free_start/end attributes.
         """
         df_ok = df[df['global_quality_flag'] == QualityFlags.OK]
-        for i in range(0, len(df_ok)-1):
+
+        for i in range(len(df_ok)):
             this_row = df_ok.iloc[i]
-            next_row = df_ok.iloc[i + 1]
+            prev_row = df_ok.iloc[i - 1] if i > 0 else None
+            next_row = df_ok.iloc[i + 1] if i < len(df_ok) - 1 else None
             LOG.debug('Computing overlap for {}'.format(this_row['filename']))
-            if this_row['end_time'] >= next_row['start_time']:
-                # LRU cached method re-uses timestamps from the previous iteration.
-                this_ds = self._read_acq_time(this_row['filename'])
-                next_ds = self._read_acq_time(next_row['filename'])
-                cut = (this_ds['acq_time'] >= next_ds['acq_time'][0]).argmax().values
-                df.loc[df_ok.index[i], 'cut_line_overlap'] = cut
+            this_time = xr.open_dataset(this_row['filename'])['acq_time']
+
+            # Compute overlap with preceding file
+            if prev_row is not None:
+                if prev_row['end_time'] >= this_row['start_time']:
+                    prev_end_time = prev_row['end_time'].to_datetime64()
+                    overlap_free_start = (this_time > prev_end_time).argmax().values
+                else:
+                    overlap_free_start = 0
+                df.loc[df_ok.index[i], 'overlap_free_start'] = overlap_free_start
+            else:
+                # First file
+                df.loc[df_ok.index[i], 'overlap_free_start'] = 0
+
+            # Compute overlap with subsequent file
+            if next_row is not None:
+                if this_row['end_time'] >= next_row['start_time']:
+                    next_start_time = next_row['start_time'].to_datetime64()
+                    overlap_free_end = (this_time >= next_start_time).argmax().values - 1
+                else:
+                    overlap_free_end = this_row['along_track'] - 1
+                df.loc[df_ok.index[i], 'overlap_free_end'] = overlap_free_end
+            elif not open_end:
+                # Last file
+                df.loc[df_ok.index[i], 'overlap_free_end'] = this_row['along_track'] - 1
+
         return df
 
 
