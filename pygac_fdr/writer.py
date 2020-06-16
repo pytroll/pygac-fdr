@@ -297,10 +297,10 @@ class NetcdfWriter:
             'geospatial_lat_max': scene['latitude'].max().values,
             'geospatial_lat_units': 'degrees_north',
             'geospatial_lon_resolution': '{} meters'.format(resol),
-            'geospatial_lat_resolution': '{} meters'.format(resol)
+            'geospatial_lat_resolution': '{} meters'.format(resol),
+            'time_coverage_start': 'TODO',
+            'time_coverage_end': 'TODO'
         })
-        global_attrs['time_coverage_start'] = global_attrs['start_time']
-        global_attrs['time_coverage_end'] = global_attrs['end_time']
         global_attrs.pop('sensor')
 
         # User defined static attributes take precedence over dynamic attributes.
