@@ -56,9 +56,9 @@ def open_dataset_patched(filename):
 class MetadataCollectorTest(unittest.TestCase):
     def get_mda(self, multi_platform=False):
         mda = [
-            {'platform': 'NOAA-6',
-             'start_time': np.datetime64('2049-01-01 12:00'),
-             'end_time': np.datetime64('2049-01-01 13:00'),
+            {'platform': 'NOAA-16',
+             'start_time': np.datetime64('2020-01-01 12:00'),
+             'end_time': np.datetime64('2020-01-01 13:00'),
              'along_track': 12000,
              'filename': 'file1',
              'midnight_scanline': 1234,
@@ -68,7 +68,7 @@ class MetadataCollectorTest(unittest.TestCase):
              'overlap_free_end_exp': np.nan,
              'global_quality_flag': QualityFlags.OK,
              'global_quality_flag_exp': QualityFlags.INVALID_TIMESTAMP},
-            {'platform': 'NOAA-6',
+            {'platform': 'NOAA-16',
              'start_time': np.datetime64('2009-06-30'),
              'end_time': np.datetime64('2049-01-01'),
              'along_track': 12000,
@@ -80,7 +80,7 @@ class MetadataCollectorTest(unittest.TestCase):
              'overlap_free_end_exp': np.nan,
              'global_quality_flag': QualityFlags.OK,
              'global_quality_flag_exp': QualityFlags.TOO_LONG},
-            {'platform': 'NOAA-6',
+            {'platform': 'NOAA-16',
              'start_time': np.datetime64('2009-07-01 00:00'),
              'end_time': np.datetime64('2009-07-01 01:00'),
              'along_track': 12000,
@@ -92,7 +92,7 @@ class MetadataCollectorTest(unittest.TestCase):
              'overlap_free_end_exp': 2,
              'global_quality_flag': QualityFlags.OK,
              'global_quality_flag_exp': QualityFlags.OK},
-            {'platform': 'NOAA-6',
+            {'platform': 'NOAA-16',
              'start_time': np.datetime64('2009-07-01 00:50'),
              'end_time': np.datetime64('2009-07-01 02:00'),
              'along_track': 12000,
@@ -104,7 +104,7 @@ class MetadataCollectorTest(unittest.TestCase):
              'overlap_free_end_exp': 3,
              'global_quality_flag': QualityFlags.OK,
              'global_quality_flag_exp': QualityFlags.OK},
-            {'platform': 'NOAA-6',
+            {'platform': 'NOAA-16',
              'start_time': np.datetime64('2009-07-01 01:50'),
              'end_time': np.datetime64('2009-07-01 03:00'),
              'along_track': 12000,
@@ -116,7 +116,7 @@ class MetadataCollectorTest(unittest.TestCase):
              'overlap_free_end_exp': 2,
              'global_quality_flag': QualityFlags.OK,
              'global_quality_flag_exp': QualityFlags.OK},
-            {'platform': 'NOAA-6',
+            {'platform': 'NOAA-16',
              'start_time': np.datetime64('2009-07-01 02:15'),
              'end_time': np.datetime64('2009-07-01 02:30'),
              'along_track': 12000,
@@ -128,7 +128,7 @@ class MetadataCollectorTest(unittest.TestCase):
              'overlap_free_end_exp': np.nan,
              'global_quality_flag': QualityFlags.OK,
              'global_quality_flag_exp': QualityFlags.REDUNDANT},
-            {'platform': 'NOAA-6',
+            {'platform': 'NOAA-16',
              'start_time': np.datetime64('2009-07-01 02:15'),
              'end_time': np.datetime64('2009-07-01 02:30'),
              'along_track': 12000,
@@ -140,7 +140,7 @@ class MetadataCollectorTest(unittest.TestCase):
              'overlap_free_end_exp': np.nan,
              'global_quality_flag': QualityFlags.OK,
              'global_quality_flag_exp': QualityFlags.DUPLICATE},
-            {'platform': 'NOAA-6',
+            {'platform': 'NOAA-16',
              'start_time': np.datetime64('2009-07-01 03:00'),
              'end_time': np.datetime64('2009-07-01 03:01'),
              'along_track': 49,
@@ -152,7 +152,7 @@ class MetadataCollectorTest(unittest.TestCase):
              'overlap_free_end_exp': np.nan,
              'global_quality_flag': QualityFlags.OK,
              'global_quality_flag_exp': QualityFlags.TOO_SHORT},
-            {'platform': 'NOAA-6',
+            {'platform': 'NOAA-16',
              'start_time': np.datetime64('2009-07-01 02:50'),
              'end_time': np.datetime64('2009-07-01 04:00'),
              'along_track': 12000,
@@ -164,7 +164,7 @@ class MetadataCollectorTest(unittest.TestCase):
              'overlap_free_end_exp': 11999,
              'global_quality_flag': QualityFlags.OK,
              'global_quality_flag_exp': QualityFlags.OK},
-            {'platform': 'NOAA-6',
+            {'platform': 'NOAA-16',
              'start_time': np.datetime64('2009-07-01 03:50'),
              'end_time': np.datetime64('2008-07-01 05:00'),
              'along_track': 12000,
@@ -176,7 +176,7 @@ class MetadataCollectorTest(unittest.TestCase):
              'overlap_free_end_exp': np.nan,
              'global_quality_flag': QualityFlags.OK,
              'global_quality_flag_exp': QualityFlags.INVALID_TIMESTAMP},
-            {'platform': 'NOAA-6',
+            {'platform': 'NOAA-16',
              'start_time': np.datetime64('2009-07-01 04:50'),
              'end_time': np.datetime64('2009-07-01 06:00'),
              'along_track': 12000,
@@ -192,17 +192,17 @@ class MetadataCollectorTest(unittest.TestCase):
         
         # Add exact copy with another platform
         if multi_platform:
-            noaa7 = [rec.copy() for rec in mda]
-            for rec in noaa7:
-                rec['platform'] = 'NOAA-7'
-            mda = mda + noaa7
+            noaa17 = [rec.copy() for rec in mda]
+            for rec in noaa17:
+                rec['platform'] = 'NOAA-17'
+            mda = mda + noaa17
 
         return pd.DataFrame(mda)
 
     def test_set_global_qual_flags(self):
         mda = self.get_mda(multi_platform=False)
         collector = MetadataCollector()
-        mda_qc = collector._set_global_qual_flags(mda)
+        mda_qc = collector._set_global_qual_flags(mda, platform='NOAA-16')
         pd.testing.assert_series_equal(mda_qc['global_quality_flag'],
                                        mda_qc['global_quality_flag_exp'],
                                        check_names=False)

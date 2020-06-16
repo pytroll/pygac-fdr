@@ -29,6 +29,8 @@ import xarray as xr
 import pygac
 import pygac_fdr
 from pygac_fdr.utils import LOGGER_NAME
+from pygac_fdr.metadata import TIME_COVERAGE
+
 
 LOG = logging.getLogger(LOGGER_NAME)
 
@@ -135,7 +137,6 @@ DEFAULT_ENCODING = {
                    'zlib': True,
                    'complevel': 4}
 }  # refers to renamed datasets
-
 METOP_PRE_LAUNCH_NUMBERS = {'a': 2, 'b': 1, 'c': 3}
 
 
@@ -152,7 +153,7 @@ def get_platform_short_name(pygac_name):
         return 'N05'
 
 
-def get_gcmd_platform_name(pygac_name):
+def get_gcmd_platform_name(pygac_name, with_category=True):
     """Get platform name from NASA's Global Change Master Directory (GCMD).
 
     FUTURE: Use a library for this. Tried "pythesint" but installation failed.
@@ -171,7 +172,10 @@ def get_gcmd_platform_name(pygac_name):
     else:
         raise ValueError('Invalid platform name: {}'.format(pygac_name))
 
-    return '{} > {} > {}'.format('Earth Observation Satellites', gcmd_series, gcmd_name)
+    if with_category:
+        gcmd_name = '{} > {} > {}'.format('Earth Observation Satellites', gcmd_series, gcmd_name)
+
+    return gcmd_name
 
 
 def get_gcmd_instrument_name(pygac_name):
@@ -217,7 +221,7 @@ class NetcdfWriter:
         """Get temporal coverage of the dataset."""
         tstart = scene['4']['acq_time'][0]
         tend = scene['4']['acq_time'][-1]
-        return tstart, tend
+        return tstart.dt, tend.dt
 
     def _get_integer_version(self, version):
         """Convert version string to integer.
@@ -243,12 +247,12 @@ class NetcdfWriter:
             creation_time = datetime(2020, 1, 1)
         else:
             creation_time = datetime.now()
-        tstart, tend = self._get_temp_cov(scene)
+        start_time, end_time = self._get_temp_cov(scene)
         platform = get_platform_short_name(scene['4'].attrs['platform_name'])
         version = self.global_attrs.get('version', '0.0.0')
         version_int = self._get_integer_version(version)
-        fields = {'start_time': tstart.dt.strftime(self.time_fmt).data,
-                  'end_time': tend.dt.strftime(self.time_fmt).data,
+        fields = {'start_time': start_time.strftime(self.time_fmt).data,
+                  'end_time': end_time.strftime(self.time_fmt).data,
                   'platform': platform,
                   'version': version,
                   'version_int': version_int,
@@ -277,14 +281,16 @@ class NetcdfWriter:
             global_attrs[attr] = ch4.attrs[attr]
 
         # Set some dynamic attributes
-        tstart, tend = self._get_temp_cov(scene)
+        start_time, end_time = self._get_temp_cov(scene)
+        time_cov_start, time_cov_end = TIME_COVERAGE[get_gcmd_platform_name(
+            ch4.attrs['platform_name'], with_category=False)]
         resol = ch4.attrs['resolution']  # all channels have the same resolution
         global_attrs.update({
             'platform': get_gcmd_platform_name(ch4.attrs['platform_name']),
             'instrument': get_gcmd_instrument_name(ch4.attrs['sensor']),
             'date_created': datetime.now().isoformat(),
-            'start_time': tstart.dt.strftime(self.time_fmt).data,
-            'end_time': tend.dt.strftime(self.time_fmt).data,
+            'start_time': start_time.strftime(self.time_fmt).data,
+            'end_time': end_time.strftime(self.time_fmt).data,
             'sun_earth_distance_correction_factor': ch4.attrs['sun_earth_distance_correction_factor'],
             'version_pygac': pygac.__version__,
             'version_pygac_fdr': pygac_fdr.__version__,
@@ -298,10 +304,11 @@ class NetcdfWriter:
             'geospatial_lat_units': 'degrees_north',
             'geospatial_lon_resolution': '{} meters'.format(resol),
             'geospatial_lat_resolution': '{} meters'.format(resol),
-            'time_coverage_start': 'TODO',
-            'time_coverage_end': 'TODO'
+            'time_coverage_start': time_cov_start.strftime(self.time_fmt),
         })
-        global_attrs.pop('sensor')
+        if time_cov_end:  # Otherwise still operational
+            global_attrs['time_coverage_end'] = time_cov_end.strftime(self.time_fmt)
+        global_attrs.pop('sensor')  # we already have "instrument"
 
         # User defined static attributes take precedence over dynamic attributes.
         global_attrs.update(self.global_attrs)

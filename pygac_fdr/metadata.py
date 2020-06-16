@@ -1,5 +1,5 @@
+from datetime import datetime
 from enum import IntEnum
-from functools import lru_cache
 import logging
 import netCDF4
 import numpy as np
@@ -10,6 +10,26 @@ from xarray.coding.times import encode_cf_datetime
 
 
 LOG = logging.getLogger(__package__)
+
+
+TIME_COVERAGE = {
+    'METOP-A': (datetime(2007, 6, 28, 23, 14), None),
+    'METOP-B': (datetime(2013, 1, 1, 1, 1), None),
+    'NOAA-6': (datetime(1980, 1, 1, 0, 0), datetime(1982, 8, 3, 0, 39)),
+    'NOAA-7': (datetime(1981, 8, 24, 0, 13), datetime(1985, 2, 1, 22, 21)),
+    'NOAA-8': (datetime(1983, 5, 4, 19, 9), datetime(1985, 10, 14, 3, 26)),
+    'NOAA-9': (datetime(1985, 2, 25, 0, 13), datetime(1988, 11, 7, 21, 18)),
+    'NOAA-10': (datetime(1986, 11, 17, 1, 22), datetime(1991, 9, 16, 21, 19)),
+    'NOAA-11': (datetime(1988, 11, 8, 0, 16), datetime(1994, 10, 16, 23, 27)),
+    'NOAA-12': (datetime(1991, 9, 16, 0, 17), datetime(1998, 12, 14, 20, 43)),
+    'NOAA-14': (datetime(1995, 1, 20, 0, 37), datetime(2002, 10, 7, 22, 47)),
+    'NOAA-15': (datetime(1998, 10, 26, 0, 54), None),
+    'NOAA-16': (datetime(2001, 1, 1, 0, 0), datetime(2011, 12, 31, 23, 40)),
+    'NOAA-17': (datetime(2002, 6, 25, 5, 41), datetime(2011, 12, 31, 19, 11)),
+    'NOAA-18': (datetime(2005, 5, 20, 18, 17), None),
+    'NOAA-19': (datetime(2009, 2, 6, 18, 32), None),
+    'TIROS-N': (datetime(1978, 11, 5, 9, 8), datetime(1980, 1, 30, 17, 3))
+}  # Estimated based on NOAA L1B archive
 
 
 class QualityFlags(IntEnum):
@@ -86,7 +106,7 @@ class MetadataCollector:
 
         # Set quality flags
         LOG.info('Computing quality flags')
-        df = df.groupby('platform').apply(lambda x: self._set_global_qual_flags(x))
+        df = df.groupby('platform').apply(lambda x: self._set_global_qual_flags(x, x.name))
         df = df.drop(['platform'], axis=1)
 
         # Calculate overlap
@@ -222,14 +242,17 @@ class MetadataCollector:
                                 keep='first')
         df.loc[gs_dupl, 'global_quality_flag'] = QualityFlags.DUPLICATE
 
-    def _set_invalid_timestamp_flag(self, df):
+    def _set_invalid_timestamp_flag(self, df, platform):
         """Flag files with invalid timestamps.
 
-        Timestamps are considered invalid if they are outside the valid range (1970-2030) or if
-        end_time < start_time.
+        Timestamps are considered invalid if they are outside the temporal coverage of the platform
+        or if end_time < start_time.
         """
-        valid_min = np.datetime64('1970-01-01 00:00')
-        valid_max = np.datetime64('2030-01-01 00:00')
+        valid_min, valid_max = TIME_COVERAGE[platform]
+        if not valid_max:
+            valid_max = np.datetime64('2030-01-01 00:00')
+        valid_min = np.datetime64(valid_min)
+        valid_max = np.datetime64(valid_max)
         out_of_range = ((df['start_time'] < valid_min) |
                         (df['start_time'] > valid_max) |
                         (df['end_time'] < valid_min) |
@@ -263,10 +286,10 @@ class MetadataCollector:
         too_long = (df['end_time'] - df['start_time']) > max_length
         df.loc[too_long, 'global_quality_flag'] = QualityFlags.TOO_LONG
 
-    def _set_global_qual_flags(self, df):
+    def _set_global_qual_flags(self, df, platform):
         """Set global quality flags."""
         df = df.reset_index(drop=True)
-        self._set_invalid_timestamp_flag(df)
+        self._set_invalid_timestamp_flag(df, platform)
         self._set_too_short_flag(df)
         self._set_too_long_flag(df)
         self._set_redundant_flag(df)
