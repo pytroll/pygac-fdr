@@ -7,7 +7,7 @@ controls:
         calibration: /data/avhrr_gac/calibration.json
 output:
     output_dir: /data/avhrr_gac/output/
-    fname_fmt: AVHRR_PyGAC_FDR_{processing_level}_{platform}_{start_time}_{end_time}_{processing_mode}_{disposition_mode}_{creation_time}_{version_int:04d}.nc
+    fname_fmt: AVHRR-GAC_FDR_{processing_level}_{platform}_{start_time}_{end_time}_{processing_mode}_{disposition_mode}_{creation_time}_{version_int:04d}.nc
 metadata:
     id: DOI:10.5676/EUM/AVHRR_GAC_L1C_FDR/V0100
     title: AVHRR GAC L1C FDR
