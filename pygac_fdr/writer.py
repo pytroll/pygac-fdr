@@ -295,7 +295,7 @@ class NetcdfWriter:
             'version_pygac': pygac.__version__,
             'version_pygac_fdr': pygac_fdr.__version__,
             'version_satpy': satpy.__version__,
-            'version_calib_coeffs': 'TODO',
+            'version_calib_coeffs': ch4.attrs['calib_coeffs_version'],
             'geospatial_lon_min': scene['longitude'].min().values,
             'geospatial_lon_max': scene['longitude'].max().values,
             'geospatial_lon_units': 'degrees_east',
