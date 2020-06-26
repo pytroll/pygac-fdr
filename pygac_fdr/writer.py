@@ -25,6 +25,7 @@ import netCDF4
 import os
 import satpy
 from string import Formatter
+import warnings
 import xarray as xr
 import pygac
 import pygac_fdr
@@ -249,7 +250,13 @@ class NetcdfWriter:
             creation_time = datetime.now()
         start_time, end_time = self._get_temp_cov(scene)
         platform = get_platform_short_name(scene['4'].attrs['platform_name'])
-        version = self.global_attrs.get('version', '0.0.0')
+        try:
+            version = self.global_attrs['product_version']
+        except KeyError:
+            version = '0.0.0'
+            msg = 'No product_version set in global attributes. Falling back to 0.0.0'
+            LOG.warning(msg)
+            warnings.warn(msg)
         version_int = self._get_integer_version(version)
         fields = {'start_time': start_time.strftime(self.time_fmt).data,
                   'end_time': end_time.strftime(self.time_fmt).data,
@@ -345,7 +352,7 @@ class NetcdfWriter:
         LOG.info('Fixing global attributes')
         with netCDF4.Dataset(filename, mode='a') as nc:
             # Satpy's CF writer overrides Conventions attribute
-            nc.Conventions = ', '.join([nc.Conventions, global_attrs['Conventions']])
+            nc.Conventions = global_attrs['Conventions']
 
     def _append_gac_header(self, filename, header):
         """Append raw GAC header to the given netCDF file."""
