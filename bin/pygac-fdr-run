@@ -51,18 +51,22 @@ if __name__ == '__main__':
     # line.
     config = read_config(args.cfg)
     if args.output_dir:
-        config['output_dir'] = args.output_dir
+        config['output']['output_dir'] = args.output_dir
     if args.debug:
-        config['debug'] = args.debug
+        config['controls']['debug'] = args.debug
 
     # Process files
     for filename in args.filenames:
         LOG.info('Processing file {}'.format(filename))
         try:
-            scene = read_gac(filename, reader_kwargs=config['reader_kwargs'])
-            writer = NetcdfWriter(global_attrs=config['global_attrs'])
-            writer.write(output_dir=config['output_dir'], scene=scene)
+            scene = read_gac(filename, reader_kwargs=config['controls'].get('reader_kwargs'))
+            writer = NetcdfWriter(global_attrs=config.get('metadata'),
+                                  fname_fmt=config['output'].get('fname_fmt'),
+                                  encoding=config['netcdf'].get('encoding'),
+                                  engine=config['netcdf'].get('engine'),
+                                  debug=config['controls'].get('debug'))
+            writer.write(output_dir=config['output'].get('output_dir'), scene=scene)
         except Exception as err:
-            if config['debug']:
+            if config['controls']['debug']:
                 raise
             LOG.error('Error processing file {}: {}'.format(filename, err))

@@ -1,14 +1,54 @@
-output_dir: /data/avhrr_gac/output/
-fname_fmt: avhrr_gac_fdr_v%(version)s_%(platform)s_%(start_time)s_%(end_time)s.nc
-debug: True
-reader_kwargs:
-    tle_dir: /data/avhrr_gac/tle
-    tle_name: TLE_%(satname)s.txt
-    tle_thresh: 1000
-#   calibration: my_coefs.json (TODO)
-global_attrs:
-    title: AVHRR GAC FDR
-    id: DOI:10.5676/EUM/AVHRR_GAC/V001
-    creator: EUMETSAT
-    creator_url: www.eumetsat.int
-    creator_email: ops@eumetsat.int
+controls:
+    debug: True
+    reader_kwargs:
+        tle_dir: /data/avhrr_gac/tle
+        tle_name: TLE_%(satname)s.txt
+        tle_thresh: 1000
+        calibration_file: /data/avhrr_gac/calibration.json
+output:
+    output_dir: /data/avhrr_gac/output/
+    fname_fmt: AVHRR-GAC_FDR_{processing_level}_{platform}_{start_time}_{end_time}_{processing_mode}_{disposition_mode}_{creation_time}_{version_int:04d}.nc
+metadata:
+    id: DOI:10.5676/EUM/AVHRR_GAC_L1C_FDR/V0100
+    title: AVHRR GAC L1C FDR
+    product_version: 1.0.0
+    institution: EUMETSAT, ops@eumetsat.int
+    naming_authority: int.eumetsat
+    comment: Developed in cooperation with EUM CM SAF and the PyTroll community.
+    summary: >-
+        Fundamental Data Record (FDR) of measurements from the Advanced Very High Resolution Radiometer (AVHRR) at
+        full Global Area Coverage (GAC) resolution. AVHRR GAC measurements have been calibrated to Level 1C using the
+        PyGAC software with PATMOS-x calibration coefficients. This includes the conversion from counts to
+        reflectance or brightness temperature as well as inter-sensor calibration. The data are accompanied by
+        additional metadata (such as orbit overlap and equator crossing time) as well as basic quality indicators.
+    references: >-
+        Devasthale, A., M. Raspaud, C. Schlundt, T. Hanschmann, S. Finkensieper, A. Dybbroe, S. Hörnquist,
+        N. Håkansson, M. Stengel and K-G. Karlsson. "PyGAC: An open-source, community-driven Python interface to
+        preprocess nearly 40-year AVHRR Global Area Coverage (GAC) data record",
+        GSICS Quarterly Newsletter, Vol. 11, No. 2 (Sept. 2017): 3-5. DOI: 10.7289/V5R78CFR.
+
+        Heidinger, A. K., W. C. Straka, C. C. Molling, J. T. Sullivan, and X. Q. Wu, Deriving an inter-sensor
+        consistent calibration for the AVHRR solar reflectance data record, International Journal of Remote Sensing,
+        vol. 31, no. 24, pp. 6493–6517, 2010.
+    keywords: >-
+        ATMOSPHERE > ATMOSPHERIC RADIATION > REFLECTANCE,
+        ATMOSPHERE > ATMOSPHERIC RADIATION > OUTGOING LONGWAVE RADIATION,
+        SPECTRAL/ENGINEERING > INFRARED WAVELENGTHS,
+        SPECTRAL/ENGINEERING > VISIBLE WAVELENGTHS
+    source: AVHRR GAC Level 1 Data
+    processing_level: 1C
+    processing_mode: R
+    disposition_mode: O
+    Conventions: CF-1.9 ACDD-1.3
+    keywords_vocabulary: GCMD Science Keywords, Version 9.1
+    standard_name_vocabulary: CF Standard Name Table v73
+    licence: EUMETSAT data policy https://www.eumetsat.int/website/home/AboutUs/WhoWeAre/LegalFramework/DataPolicy/index.html
+    history:
+netcdf:
+    engine: netcdf4
+    encoding:
+        qual_flags:
+            'dtype': 'int16'
+            '_FillValue': -32767
+            'zlib': True
+            'complevel': 4
