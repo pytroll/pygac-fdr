@@ -337,6 +337,12 @@ class NetcdfWriter:
                 continue
             del scene[old_name]
 
+    def _set_custom_attrs(self, scene):
+        """Set custom dataset attributes."""
+        scene['qual_flags'].attrs['comment'] = 'Seven binary quality flags are provided per ' \
+                                               'scanline. See the num_flags coordinate for their ' \
+                                               'meanings.'
+
     def _get_encoding(self, scene):
         """Get netCDF encoding for the datasets in the scene."""
         # Remove entries from the encoding dictionary if the corresponding dataset is not available.
@@ -375,6 +381,7 @@ class NetcdfWriter:
         gac_header = scene['4'].attrs['gac_header'].copy()
         global_attrs = self._get_global_attrs(scene)
         self._cleanup_attrs(scene)
+        self._set_custom_attrs(scene)
         self._rename_datasets(scene)
         encoding = self._get_encoding(scene)
         LOG.info('Writing calibrated scene to {}'.format(filename))
