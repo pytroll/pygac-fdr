@@ -22,6 +22,7 @@ from datetime import datetime
 from distutils.version import StrictVersion
 import logging
 import netCDF4
+import numpy as np
 import os
 import satpy
 from string import Formatter
@@ -352,7 +353,16 @@ class NetcdfWriter:
         scn_keys = set([key.name for key in scene.keys()])
         scn_keys = scn_keys.union(
             set([coord for key in scene.keys() for coord in scene[key].coords]))
-        return dict([(key, self.encoding[key]) for key in enc_keys.intersection(scn_keys)])
+        encoding = dict([(key, self.encoding[key]) for key in enc_keys.intersection(scn_keys)])
+
+        # Make sure scale_factor and add_offset are both double
+        for enc in encoding.values():
+            if 'scale_factor' in enc:
+                enc['scale_factor'] = np.float64(enc['scale_factor'])
+            if 'add_offset' in enc:
+                enc['add_offset'] = np.float64(enc['add_offset'])
+
+        return encoding
 
     def _fix_global_attrs(self, filename, global_attrs):
         LOG.info('Fixing global attributes')
