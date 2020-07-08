@@ -48,7 +48,8 @@ FILL_VALUE_INT16 = -32767
 FILL_VALUE_INT32 = -2147483648
 DEFAULT_ENCODING = {
     'acq_time': {'units': 'seconds since 1970-01-01 00:00:00',
-                 'calendar': 'standard'},
+                 'calendar': 'standard',
+                 '_FillValue': None},
     'reflectance_channel_1': {'dtype': 'int16',
                               'scale_factor': 0.01,
                               'add_offset': 0,
