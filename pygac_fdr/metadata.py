@@ -115,10 +115,10 @@ class MetadataCollector:
 
         return df
 
-    def save_sql(self, mda, dbfile):
+    def save_sql(self, mda, dbfile, if_exists):
         """Save metadata to sqlite database."""
         con = sqlite3.connect(dbfile)
-        mda.to_sql(name='metadata', con=con, if_exists='replace')
+        mda.to_sql(name='metadata', con=con, if_exists=if_exists)
         con.commit()
         con.close()
 
