@@ -207,12 +207,14 @@ class NetcdfWriter:
     time_fmt = '%Y%m%dT%H%M%SZ'
     def_engine = 'netcdf4'
 
-    def __init__(self, global_attrs=None, encoding=None, engine=None, fname_fmt=None, debug=None):
+    def __init__(self, global_attrs=None, gac_header_attrs=None, encoding=None, engine=None,
+                 fname_fmt=None, debug=None):
         """
         Args:
             debug: If True, use constant creation time in output filenames.
         """
         self.global_attrs = global_attrs or {}
+        self.gac_header_attrs = gac_header_attrs or {}
         self.engine = engine or self.def_engine
         self.fname_fmt = fname_fmt or self.def_fname_fmt
         self.debug = bool(debug)
@@ -392,7 +394,7 @@ class NetcdfWriter:
         """Append raw GAC header to the given netCDF file."""
         LOG.info('Appending GAC header')
         data_vars = dict([(name, header[name]) for name in header.dtype.names])
-        header = xr.Dataset(data_vars, attrs={'title': 'Raw GAC header'})
+        header = xr.Dataset(data_vars, attrs=self.gac_header_attrs)
         header.to_netcdf(filename, mode='a', group='gac_header')
 
     def write(self, scene, output_dir=None):

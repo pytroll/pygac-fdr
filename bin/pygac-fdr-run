@@ -60,7 +60,8 @@ if __name__ == '__main__':
         LOG.info('Processing file {}'.format(filename))
         try:
             scene = read_gac(filename, reader_kwargs=config['controls'].get('reader_kwargs'))
-            writer = NetcdfWriter(global_attrs=config.get('metadata'),
+            writer = NetcdfWriter(global_attrs=config.get('global_attrs'),
+                                  gac_header_attrs=config.get('gac_header_attrs'),
                                   fname_fmt=config['output'].get('fname_fmt'),
                                   encoding=config['netcdf'].get('encoding'),
                                   engine=config['netcdf'].get('engine'),
