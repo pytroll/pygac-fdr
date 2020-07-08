@@ -206,13 +206,18 @@ class MetadataCollector:
         def is_redundant(end_times):
             start_times = end_times.index.get_level_values('start_time').to_numpy()
             end_times = end_times.to_numpy()
-            redundant = (start_times[-1] >= start_times) & (end_times[-1] <= end_times)
-            redundant[-1] = False
+            this_start_time = start_times[-1]
+            this_end_time = end_times[-1]
+            redundant = (this_start_time >= start_times[:-1]) & (this_end_time <= end_times[:-1])
             return redundant.any()
 
         # Only take into account files that passed the QC check so far (e.g. we don't want
         # files flagged as TOO_LONG to overlap many subsequent files)
         df_ok = df[df['global_quality_flag'] == QualityFlags.OK].copy()
+
+        # Sort by ascending start time and descending end time. This is required to catch
+        # redundant files with identical start times but different end times.
+        df_ok = df_ok.sort_values(by=['start_time', 'end_time'], ascending=[True, False])
 
         # DataFrame.rolling is an elegant solution, but it has two drawbacks:
         # a) It only supports numerical data types. Workaround: Convert timestamps to integer.
@@ -292,8 +297,8 @@ class MetadataCollector:
         self._set_invalid_timestamp_flag(df, platform)
         self._set_too_short_flag(df)
         self._set_too_long_flag(df)
-        self._set_redundant_flag(df)
         self._set_duplicate_flag(df)
+        self._set_redundant_flag(df)
         return df
 
     def _calc_overlap(self, df, open_end=False):

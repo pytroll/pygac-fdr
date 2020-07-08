@@ -178,6 +178,18 @@ class MetadataCollectorTest(unittest.TestCase):
              'global_quality_flag_exp': QualityFlags.INVALID_TIMESTAMP},
             {'platform': 'NOAA-16',
              'start_time': np.datetime64('2009-07-01 04:50'),
+             'end_time': np.datetime64('2009-07-01 05:59'),
+             'along_track': 12000,
+             'filename': 'file12',
+             'midnight_scanline': 1234,
+             'overlap_free_start': np.nan,
+             'overlap_free_start_exp': np.nan,
+             'overlap_free_end': np.nan,
+             'overlap_free_end_exp': np.nan,
+             'global_quality_flag': QualityFlags.OK,
+             'global_quality_flag_exp': QualityFlags.REDUNDANT},
+            {'platform': 'NOAA-16',
+             'start_time': np.datetime64('2009-07-01 04:50'),
              'end_time': np.datetime64('2009-07-01 06:00'),
              'along_track': 12000,
              'filename': 'file11',
@@ -187,7 +199,7 @@ class MetadataCollectorTest(unittest.TestCase):
              'overlap_free_end': np.nan,
              'overlap_free_end_exp': 11999,
              'global_quality_flag': QualityFlags.OK,
-             'global_quality_flag_exp': QualityFlags.OK},
+             'global_quality_flag_exp': QualityFlags.OK}
         ]
         
         # Add exact copy with another platform
