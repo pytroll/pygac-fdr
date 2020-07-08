@@ -48,6 +48,8 @@ DATASET_NAMES = {
 FILL_VALUE_INT16 = -32767
 FILL_VALUE_INT32 = -2147483648
 DEFAULT_ENCODING = {
+    'y': {'dtype': 'int16'},
+    'x': {'dtype': 'int16'},
     'acq_time': {'units': 'seconds since 1970-01-01 00:00:00',
                  'calendar': 'standard',
                  '_FillValue': None},
@@ -344,6 +346,17 @@ class NetcdfWriter:
         scene['qual_flags'].attrs['comment'] = 'Seven binary quality flags are provided per ' \
                                                'scanline. See the num_flags coordinate for their ' \
                                                'meanings.'
+        for ds_name in scene.keys():
+            scene[ds_name]['acq_time'].attrs.update({'standard_name': 'time', 'axis': 'T'})
+
+            if scene[ds_name].dims == ('y', 'x'):
+                scene[ds_name] = scene[ds_name].assign_coords(
+                    {'y': np.arange(scene[ds_name].shape[0]),
+                     'x': np.arange(scene[ds_name].shape[1])})
+                scene[ds_name].coords['x'].attrs.update({'axis': 'X',
+                                                         'long_name': 'Pixel number'})
+                scene[ds_name].coords['y'].attrs.update({'axis': 'Y',
+                                                         'long_name': 'Line number'})
 
     def _get_encoding(self, scene):
         """Get netCDF encoding for the datasets in the scene."""
@@ -369,6 +382,11 @@ class NetcdfWriter:
         with netCDF4.Dataset(filename, mode='a') as nc:
             # Satpy's CF writer overrides Conventions attribute
             nc.Conventions = global_attrs['Conventions']
+
+            # Satpy's CF writer assumes x/y to be projection coordinates
+            for var_name in ('x', 'y'):
+                for drop_attr in ['standard_name', 'units']:
+                    nc.variables[var_name].delncattr(drop_attr)
 
     def _append_gac_header(self, filename, header):
         """Append raw GAC header to the given netCDF file."""
