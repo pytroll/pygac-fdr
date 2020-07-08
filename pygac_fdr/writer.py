@@ -150,8 +150,7 @@ def get_platform_short_name(pygac_name):
         nr = METOP_PRE_LAUNCH_NUMBERS[pygac_name[5:]]
         return 'M{:02d}'.format(nr)
     elif pygac_name == 'tirosn':
-        # TODO: Correct?
-        return 'N05'
+        return 'TSN'
 
 
 def get_gcmd_platform_name(pygac_name, with_category=True):
