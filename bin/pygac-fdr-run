@@ -18,6 +18,7 @@
 
 import argparse
 import logging
+import satpy
 from pygac_fdr.reader import read_gac
 from pygac_fdr.writer import NetcdfWriter
 from pygac_fdr.config import read_config
@@ -56,6 +57,7 @@ if __name__ == '__main__':
         config['controls']['debug'] = args.debug
 
     # Process files
+    satpy.CHUNK_SIZE = config['controls'].get('pytroll_chunk_size', 1024)
     for filename in args.filenames:
         LOG.info('Processing file {}'.format(filename))
         try:
