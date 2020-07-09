@@ -144,6 +144,8 @@ class MetadataCollector:
                        'end_time': ds['acq_time'].values[-1],
                        'along_track': ds.dims['y'],
                        'filename': filename,
+                       'orbit_number_start': ds.attrs['orbit_number_start'],
+                       'orbit_number_end': ds.attrs['orbit_number_end'],
                        'equator_crossing_longitude': eq_cross_lon,
                        'equator_crossing_time': eq_cross_time,
                        'midnight_line': midnight_line,
