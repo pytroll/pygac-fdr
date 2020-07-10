@@ -18,7 +18,7 @@ global_attrs:
     creator_url: https://www.eumetsat.int/
     creator_email: ops@eumetsat.int
     naming_authority: int.eumetsat
-    comment: Developed in cooperation with EUM CM SAF and the PyTroll community.
+    comment: Developed in cooperation with EUMETSAT CM SAF and the PyTroll community.
     summary: >-
         Fundamental Data Record (FDR) of measurements from the Advanced Very High Resolution Radiometer (AVHRR) at
         full Global Area Coverage (GAC) resolution. AVHRR GAC measurements have been calibrated to Level 1C using the
