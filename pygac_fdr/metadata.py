@@ -60,16 +60,18 @@ ADDITIONAL_METADATA = [
      'dtype': np.int16,
      'fill_value': FILL_VALUE_INT},
     {'name': 'equator_crossing_longitude',
-     'long_name': 'Longitude where ascending node crosses the equator',
+     'long_name': 'Longitude where ascending node crosses the equator (can happen twice per file)',
      'units': 'degrees_east',
      'dtype': np.float64,
-     'fill_value': FILL_VALUE_FLOAT},
+     'fill_value': FILL_VALUE_FLOAT,
+     'dim': 'num_eq_cross'},
     {'name': 'equator_crossing_time',
-     'long_name': 'UTC time when ascending node crosses the equator',
+     'long_name': 'UTC time when ascending node crosses the equator (can happen twice per file)',
      'units': 'seconds since 1970-01-01 00:00:00',
      'calendar': 'standard',
      'dtype': np.float64,
-     'fill_value': FILL_VALUE_INT},
+     'fill_value': FILL_VALUE_INT,
+     'dim': 'num_eq_cross'},
     {'name': 'global_quality_flag',
      'long_name': 'Global quality flag',
      'comment': 'If this flag is everything else than "ok", it is recommended not '
@@ -127,8 +129,10 @@ class MetadataCollector:
         with sqlite3.connect(dbfile) as con:
             mda = pd.read_sql('select * from metadata', con)
         mda = mda.set_index(['platform', 'level_1'])
-        for time_col in ['start_time', 'end_time', 'equator_crossing_time']:
-            mda[time_col] = mda[time_col].astype('datetime64[ns]')
+        mda.fillna(value=np.nan, inplace=True)
+        for col in mda.columns:
+            if 'time' in col:
+                mda[col] = mda[col].astype('datetime64[ns]')
         return mda
 
     def _collect_metadata(self, filenames):
@@ -138,7 +142,7 @@ class MetadataCollector:
             LOG.debug('Collecting metadata from {}'.format(filename))
             with xr.open_dataset(filename) as ds:
                 midnight_line = np.float64(self._get_midnight_line(ds['acq_time']))
-                eq_cross_lon, eq_cross_time = self._get_equator_crossing(ds)
+                eq_cross_lons, eq_cross_times = self._get_equator_crossings(ds)
                 rec = {'platform':  ds.attrs['platform'].split('>')[-1].strip(),
                        'start_time': ds['acq_time'].values[0],
                        'end_time': ds['acq_time'].values[-1],
@@ -146,8 +150,10 @@ class MetadataCollector:
                        'filename': filename,
                        'orbit_number_start': ds.attrs['orbit_number_start'],
                        'orbit_number_end': ds.attrs['orbit_number_end'],
-                       'equator_crossing_longitude': eq_cross_lon,
-                       'equator_crossing_time': eq_cross_time,
+                       'equator_crossing_longitude_1': eq_cross_lons[0],
+                       'equator_crossing_time_1': eq_cross_times[0],
+                       'equator_crossing_longitude_2': eq_cross_lons[1],
+                       'equator_crossing_time_2': eq_cross_times[1],
                        'midnight_line': midnight_line,
                        'overlap_free_start': np.nan,
                        'overlap_free_end': np.nan,
@@ -172,11 +178,11 @@ class MetadataCollector:
             return incr[0]
         return np.nan
 
-    def _get_equator_crossing(self, ds):
-        """Determine where the ascending node crosses the equator.
+    def _get_equator_crossings(self, ds):
+        """Determine where the ascending node(s) cross the equator.
 
         Returns:
-            Longitude and UTC time
+            Longitudes and UTC times of first and second equator crossing, if any, NaN else.
         """
         # Use coordinates in the middle of the swath
         mid_swath = ds['latitude'].shape[1] // 2
@@ -185,9 +191,13 @@ class MetadataCollector:
         sign_change = np.sign(lat_shift) != np.sign(lat)
         ascending = lat_shift > lat
         lat_eq = lat.where(sign_change & ascending, drop=True)
-        if len(lat_eq) > 0:
-            return lat_eq['longitude'].values[0], lat_eq['acq_time'].values[0]
-        return np.nan, np.datetime64('NaT')
+
+        num_cross = min(2, len(lat_eq))  # Two crossings max
+        eq_cross_lons = np.full(2, np.nan)
+        eq_cross_times = np.full(2, np.datetime64('NaT'), dtype=lat_eq['acq_time'].dtype)
+        eq_cross_lons[0:num_cross] = lat_eq['longitude'].values[0:num_cross]
+        eq_cross_times[0:num_cross] = lat_eq['acq_time'].values[0:num_cross]
+        return eq_cross_lons, eq_cross_times
 
     def _set_redundant_flag(self, df, window=20):
         """Flag redundant files in the given data frame.
@@ -346,39 +356,85 @@ class MetadataCollector:
         return df
 
 
-def update_metadata(mda):
-    """Add additional metadata to level 1c files."""
-    # Since xarray cannot modify files in-place, use netCDF4 directly. See
-    # https://github.com/pydata/xarray/issues/2029.
-    for _, row in mda.iterrows():
-        LOG.debug('Updating metadata in {}'.format(row['filename']))
-        with netCDF4.Dataset(filename=row['filename'], mode='r+') as nc:
-            nc_acq_time = nc.variables['acq_time']
-            for mda in ADDITIONAL_METADATA:
-                mda = mda.copy()
-                var_name = mda.pop('name')
-                fill_value = mda.pop('fill_value')
+class MetadataUpdater:
+    def update(self, mda):
+        """Add additional metadata to level 1c files.
 
-                # Create nc variable
-                try:
-                    nc_var = nc.createVariable(var_name, datatype=mda.pop('dtype'),
-                                               fill_value=fill_value)
-                except RuntimeError:
-                    # Variable already there
-                    nc_var = nc.variables[var_name]
+        Since xarray cannot modify files in-place, use netCDF4 directly. See
+        https://github.com/pydata/xarray/issues/2029.
+        """
+        mda = self._to_xarray(mda)
+        mda = self._stack(mda)
+        for irow in range(mda.dims['row']):
+            row = mda.isel(row=irow)
+            LOG.debug('Updating metadata in {}'.format(row['filename'].item()))
+            with netCDF4.Dataset(filename=row['filename'].item(), mode='r+') as nc:
+                self._update_file(nc=nc, row=row)
 
-                # Write data to nc variable. Since netCDF4 cannot handle NaN nor NaT, disable
-                # auto-masking, and set null-data to fill value manually. Furthermore, match
-                # timestamp encoding with the acq_time variable.
-                data = row[var_name]
-                nc_var.set_auto_mask(False)
-                if pd.isnull(data):
-                    data = fill_value
-                elif isinstance(data, pd.Timestamp):
-                    data = encode_cf_datetime(data, units=nc_acq_time.units,
-                                              calendar=nc_acq_time.calendar)[0]
-                nc_var[:] = data
+    def _to_xarray(self, mda):
+        mda = xr.Dataset(mda)
+        mda = mda.rename({'dim_0': 'row'})
+        return mda
 
-                # Set attributes of nc variable
-                for key, val in mda.items():
-                    nc_var.setncattr(key, val)
+    def _stack(self, mda):
+        """Stack columns to simplify the netCDF file."""
+        # Stack equator crossing longitudes/times along a new dimension
+        mda['equator_crossing_time'] = (('dim_0', 'num_eq_cross'), np.stack(
+            [mda['equator_crossing_time_1'].values,
+             mda['equator_crossing_time_2'].values]).transpose())
+        mda['equator_crossing_longitude'] = (('dim_0', 'num_eq_cross'), np.stack(
+            [mda['equator_crossing_longitude_1'].values,
+             mda['equator_crossing_longitude_2'].values]).transpose())
+        return mda
+
+    def _create_nc_var(self, nc, var_name, fill_value, dtype, shape, dims):
+        """Create netCDF variable and dimension."""
+        # Create dimension if needed (only 1D at the moment)
+        if dims:
+            dim_name, size = dims[0], shape[0]
+            if dim_name not in nc.dimensions:
+                nc.createDimension(dim_name, size=size)
+
+        # Create nc variable
+        if var_name in nc.variables:
+            nc_var = nc.variables[var_name]
+        else:
+            nc_var = nc.createVariable(var_name,
+                                       datatype=dtype,
+                                       fill_value=fill_value,
+                                       dimensions=dims)
+        return nc_var
+
+    def _update_file(self, nc, row):
+        """Update metadata of a single file."""
+        nc_acq_time = nc.variables['acq_time']
+        for add_mda in ADDITIONAL_METADATA:
+            add_mda = add_mda.copy()
+            var_name = add_mda.pop('name')
+            fill_value = add_mda.pop('fill_value')
+            data = row[var_name]
+
+            # Create nc variable
+            nc_var = self._create_nc_var(nc=nc,
+                                         var_name=var_name,
+                                         fill_value=fill_value,
+                                         dtype=add_mda.pop('dtype'),
+                                         dims=data.dims,
+                                         shape=data.shape)
+
+            # Write data to nc variable. Since netCDF4 cannot handle NaN nor NaT, disable
+            # auto-masking, and set null-data to fill value manually. Furthermore, match
+            # timestamp encoding with the acq_time variable.
+            # nc_var.set_auto_mask(False)
+            # if np.issubdtype(data.dtype, np.datetime64):
+            #     data = encode_cf_datetime(data,
+            #                               units=nc_acq_time.units,
+            #                               calendar=nc_acq_time.calendar)
+            # data = np.nan_to_num(data, nan=fill_value)
+            print(data)
+            # nc_var[:] = data
+            #
+            # # Set attributes of nc variable
+            # for key, val in add_mda.items():
+            #     nc_var.setncattr(key, val)
+
