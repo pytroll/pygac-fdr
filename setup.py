@@ -28,7 +28,8 @@ except ImportError:
 
 
 if __name__ == '__main__':
-    requires = ['setuptools_scm', 'numpy', 'netCDF4', 'pygac >=1.3.1', 'satpy >=0.21.0', 'pyyaml']
+    requires = ['setuptools_scm', 'numpy', 'xarray >=0.15.1', 'pandas >=1.0.3', 'netCDF4',
+                'h5py', 'pygac >=1.3.1', 'satpy >=0.21.0', 'pyyaml']
     README = open('README.md', 'r').read()
     setup(name='pygac-fdr',
           description='Python package for creating a Fundamental Data Record (FDR) of AVHRR GAC '
