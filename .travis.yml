@@ -25,7 +25,7 @@ install:
     - source ci-helpers/travis/setup_conda.sh
     - pip install -e .
 script:
-  - pytest --cov=pygac-fdr pygac-fdr/tests
+  - pytest --cov=pygac_fdr pygac_fdr/tests
 after_success:
   - if [[ $PYTHON_VERSION == 3.7 ]]; then coveralls; fi
 
