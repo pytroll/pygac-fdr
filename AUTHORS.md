@@ -6,8 +6,9 @@ The following people have made contributions to this project:
 <!--- If you wish to not use your real name, please use your github username --->
 <!--- The list should be alphabetical by last name if possible, with github usernames at the bottom --->
 
+- M. D.-B.
 - [Stephan Finkensieper (sfinkens)](https://github.com/sfinkens)
 - M. G.
-- C. H.
+- [Carlos Horn (carloshorn)](https://github.com/carloshorn)
 - [Martin Raspaud (mraspaud)](https://github.com/mraspaud)
-- O. S.
+- [Oliver Sus (oliversus)](https://github.com/oliversus)
