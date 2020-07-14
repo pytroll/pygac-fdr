@@ -201,7 +201,7 @@ class MetadataCollectorTest(unittest.TestCase):
              'global_quality_flag': QualityFlags.OK,
              'global_quality_flag_exp': QualityFlags.OK}
         ]
-        
+
         # Add exact copy with another platform
         if multi_platform:
             noaa17 = [rec.copy() for rec in mda]
