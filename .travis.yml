@@ -1,7 +1,6 @@
 language: python
 env:
   global:
-  # Set defaults to avoid repeating in most cases
   - PYTHON_VERSION=$TRAVIS_PYTHON_VERSION
   - NUMPY_VERSION=stable
   - MAIN_CMD='python setup.py'
@@ -14,18 +13,28 @@ env:
   - CONDA_CHANNEL_PRIORITY="strict"
 matrix:
   include:
-    - env: PYTHON_VERSION=3.6
-      os: linux
-    - env: PYTHON_VERSION=3.7
-      os: linux
-    - env: PYTHON_VERSION=3.8
-      os: linux
+  - env: PYTHON_VERSION=3.6
+    os: linux
+  - env: PYTHON_VERSION=3.7
+    os: linux
+  - env: PYTHON_VERSION=3.8
+    os: linux
 install:
-    - git clone --depth 1 git://github.com/astropy/ci-helpers.git
-    - source ci-helpers/travis/setup_conda.sh
-    - pip install -e .
+- git clone --depth 1 git://github.com/astropy/ci-helpers.git
+- source ci-helpers/travis/setup_conda.sh
+- pip install -e .
 script:
-  - pytest --cov=pygac_fdr pygac_fdr/tests
+- pytest --cov=pygac_fdr pygac_fdr/tests
 after_success:
-  - if [[ $PYTHON_VERSION == 3.7 ]]; then coveralls; fi
-
+- if [[ $PYTHON_VERSION == 3.7 ]]; then coveralls; fi
+deploy:
+  matrix:
+  - provider: pypi
+    user: sfinkens
+    password:
+      secure: MlHWi5HGZOU2rHJ9dcKqPVGIZgQVpW+T36x1Xplh0WvNsTqDUBP4HZlfFCUiFPdupKfZpMJu1ZlaPJyX8WP9ii5pdNpwsmiRZy4TcydDs8//2x53AJT27StgfSGVKnTZc1rk8M1MA1s4/o85FDJ6SgvXOeWQvs7e0z5GTBUVnCXg7YK0WLgUf8KNHtVwDkFjW1JaUutnCL/6aUpgQ+Pr1/bwM/NT4ZmDlRiv/TjqcXVKDysUt3/Oa1+9WHi1mnfuqyY3u9mMQjxqgEhDc57s5S4kItBi3d5M3dzR7vz4exss5isIEEnVIAYZ+nBv4hMOaYQHEpTPoggGsLNHEa2Pkx79SKHF96M5WoLO6vc+J+RCTUbRkL+yr9ZSbGQN1chPHsRIKAfLtlgrwXDmDwPWnSmzQ0jL8PPNvpr+oyxb9iVjEA3ZSTBz0FnEfbwZP6g/gmMbGi2eJr+7iUTlQ3ipDpi+JIvKgvIO+poTMh1GcNyzqXREFqojTakBEW9y82IUrJmxzDIwtnWoO1H/Aegl/JvTokFdEq1O8bCFIqyPsRoHgOatJqEXzrJRuXBJ09lJaCwDHh1P9rbW7tNsKuYTHVVyMqbcytRjZWBEHvjtHyNCSDyAxMJz02pJw7qaADO7e/Yv788naVKnXyI0I/GMqsX63MIL5qba0zQw0QvgtBA=
+    distributions: sdist
+    skip_existing: true
+    on:
+      tags: true
+      repo: pytroll/pygac-fdr
