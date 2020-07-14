@@ -5,16 +5,20 @@ controls:
         tle_name: TLE_%(satname)s.txt
         tle_thresh: 1000
         calibration_file: /data/avhrr_gac/calibration.json
+    pytroll_chunk_size: 1024
 output:
     output_dir: /data/avhrr_gac/output/
     fname_fmt: AVHRR-GAC_FDR_{processing_level}_{platform}_{start_time}_{end_time}_{processing_mode}_{disposition_mode}_{creation_time}_{version_int:04d}.nc
-metadata:
+global_attrs:
     id: DOI:10.5676/EUM/AVHRR_GAC_L1C_FDR/V0100
     title: AVHRR GAC L1C FDR
     product_version: 1.0.0
-    institution: EUMETSAT, ops@eumetsat.int
+    institution: EUMETSAT
+    creator_name: EUMETSAT
+    creator_url: https://www.eumetsat.int/
+    creator_email: ops@eumetsat.int
     naming_authority: int.eumetsat
-    comment: Developed in cooperation with EUM CM SAF and the PyTroll community.
+    comment: Developed in cooperation with EUMETSAT CM SAF and the PyTroll community.
     summary: >-
         Fundamental Data Record (FDR) of measurements from the Advanced Very High Resolution Radiometer (AVHRR) at
         full Global Area Coverage (GAC) resolution. AVHRR GAC measurements have been calibrated to Level 1C using the
@@ -44,6 +48,10 @@ metadata:
     standard_name_vocabulary: CF Standard Name Table v73
     licence: EUMETSAT data policy https://www.eumetsat.int/website/home/AboutUs/WhoWeAre/LegalFramework/DataPolicy/index.html
     history:
+gac_header_attrs:
+    title: Raw GAC Header
+    references: >-
+        NOAA POD & KLM user guides, https://www1.ncdc.noaa.gov/pub/data/satellite/publications/podguides/
 netcdf:
     engine: netcdf4
     encoding:

@@ -22,6 +22,7 @@ from datetime import datetime
 from distutils.version import StrictVersion
 import logging
 import netCDF4
+import numpy as np
 import os
 import satpy
 from string import Formatter
@@ -47,8 +48,11 @@ DATASET_NAMES = {
 FILL_VALUE_INT16 = -32767
 FILL_VALUE_INT32 = -2147483648
 DEFAULT_ENCODING = {
+    'y': {'dtype': 'int16'},
+    'x': {'dtype': 'int16'},
     'acq_time': {'units': 'seconds since 1970-01-01 00:00:00',
-                 'calendar': 'standard'},
+                 'calendar': 'standard',
+                 '_FillValue': None},
     'reflectance_channel_1': {'dtype': 'int16',
                               'scale_factor': 0.01,
                               'add_offset': 0,
@@ -203,12 +207,14 @@ class NetcdfWriter:
     time_fmt = '%Y%m%dT%H%M%SZ'
     def_engine = 'netcdf4'
 
-    def __init__(self, global_attrs=None, encoding=None, engine=None, fname_fmt=None, debug=None):
+    def __init__(self, global_attrs=None, gac_header_attrs=None, encoding=None, engine=None,
+                 fname_fmt=None, debug=None):
         """
         Args:
             debug: If True, use constant creation time in output filenames.
         """
         self.global_attrs = global_attrs or {}
+        self.gac_header_attrs = gac_header_attrs or {}
         self.engine = engine or self.def_engine
         self.fname_fmt = fname_fmt or self.def_fname_fmt
         self.debug = bool(debug)
@@ -337,6 +343,23 @@ class NetcdfWriter:
                 continue
             del scene[old_name]
 
+    def _set_custom_attrs(self, scene):
+        """Set custom dataset attributes."""
+        scene['qual_flags'].attrs['comment'] = 'Seven binary quality flags are provided per ' \
+                                               'scanline. See the num_flags coordinate for their ' \
+                                               'meanings.'
+        for ds_name in scene.keys():
+            scene[ds_name]['acq_time'].attrs.update({'standard_name': 'time', 'axis': 'T'})
+
+            if scene[ds_name].dims == ('y', 'x'):
+                scene[ds_name] = scene[ds_name].assign_coords(
+                    {'y': np.arange(scene[ds_name].shape[0]),
+                     'x': np.arange(scene[ds_name].shape[1])})
+                scene[ds_name].coords['x'].attrs.update({'axis': 'X',
+                                                         'long_name': 'Pixel number'})
+                scene[ds_name].coords['y'].attrs.update({'axis': 'Y',
+                                                         'long_name': 'Line number'})
+
     def _get_encoding(self, scene):
         """Get netCDF encoding for the datasets in the scene."""
         # Remove entries from the encoding dictionary if the corresponding dataset is not available.
@@ -345,7 +368,16 @@ class NetcdfWriter:
         scn_keys = set([key.name for key in scene.keys()])
         scn_keys = scn_keys.union(
             set([coord for key in scene.keys() for coord in scene[key].coords]))
-        return dict([(key, self.encoding[key]) for key in enc_keys.intersection(scn_keys)])
+        encoding = dict([(key, self.encoding[key]) for key in enc_keys.intersection(scn_keys)])
+
+        # Make sure scale_factor and add_offset are both double
+        for enc in encoding.values():
+            if 'scale_factor' in enc:
+                enc['scale_factor'] = np.float64(enc['scale_factor'])
+            if 'add_offset' in enc:
+                enc['add_offset'] = np.float64(enc['add_offset'])
+
+        return encoding
 
     def _fix_global_attrs(self, filename, global_attrs):
         LOG.info('Fixing global attributes')
@@ -353,11 +385,16 @@ class NetcdfWriter:
             # Satpy's CF writer overrides Conventions attribute
             nc.Conventions = global_attrs['Conventions']
 
+            # Satpy's CF writer assumes x/y to be projection coordinates
+            for var_name in ('x', 'y'):
+                for drop_attr in ['standard_name', 'units']:
+                    nc.variables[var_name].delncattr(drop_attr)
+
     def _append_gac_header(self, filename, header):
         """Append raw GAC header to the given netCDF file."""
         LOG.info('Appending GAC header')
         data_vars = dict([(name, header[name]) for name in header.dtype.names])
-        header = xr.Dataset(data_vars, attrs={'title': 'Raw GAC header'})
+        header = xr.Dataset(data_vars, attrs=self.gac_header_attrs)
         header.to_netcdf(filename, mode='a', group='gac_header')
 
     def write(self, scene, output_dir=None):
@@ -375,6 +412,7 @@ class NetcdfWriter:
         gac_header = scene['4'].attrs['gac_header'].copy()
         global_attrs = self._get_global_attrs(scene)
         self._cleanup_attrs(scene)
+        self._set_custom_attrs(scene)
         self._rename_datasets(scene)
         encoding = self._get_encoding(scene)
         LOG.info('Writing calibrated scene to {}'.format(filename))

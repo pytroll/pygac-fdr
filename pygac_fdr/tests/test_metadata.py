@@ -276,7 +276,24 @@ class MetadataCollectorTest(unittest.TestCase):
                                  np.datetime64('2010-01-01 00:02:00')])
         np.testing.assert_equal(collector._get_midnight_line(acq_time), np.nan)
 
-    def test_get_equator_crossing(self):
+    def test_get_equator_crossings(self):
+        collector = MetadataCollector()
+
+        # No equator crossing
+        ds = xr.Dataset(
+            coords={'latitude': (('y', 'x'), [[999, 5.0, 999],
+                                              [999, 0.1, 999],
+                                              [999, -5.0, 999]]),
+                    'longitude': (('y', 'x'), [[999, 1.0, 999],
+                                               [999, 2.0, 999],
+                                               [999, 3.0, 999]]),
+                    'acq_time': ('y', np.arange(3).astype('datetime64[s]'))}
+        )
+        lons, times = collector._get_equator_crossings(ds)
+        np.testing.assert_equal(lons, [np.nan, np.nan])
+        self.assertTrue(np.all(np.isnat(times)))
+
+        # One equator crossing
         ds = xr.Dataset(
             coords={'latitude': (('y', 'x'), [[999, 5.0, 999],
                                               [999, 0.1, 999],
@@ -291,21 +308,30 @@ class MetadataCollectorTest(unittest.TestCase):
                     'acq_time': ('y', np.arange(5).astype('datetime64[s]'))}
         )
         ds['acq_time'].attrs['coords'] = 'latitude longitude'
-        collector = MetadataCollector()
-        lon, time = collector._get_equator_crossing(ds)
-        self.assertEqual(lon, 3)
-        self.assertEqual(time, np.datetime64('1970-01-01 00:00:02'))
+        lons, times = collector._get_equator_crossings(ds)
+        np.testing.assert_equal(lons, [3, np.nan])
+        np.testing.assert_equal(times, [np.datetime64('1970-01-01 00:00:02'),
+                                        np.datetime64('NaT')])
 
-        # No equator crossing
+        # More than two equator crossings
         ds = xr.Dataset(
-            coords={'latitude': (('y', 'x'), [[999, 5.0, 999],
-                                              [999, 0.1, 999],
-                                              [999, -5.0, 999]]),
+            coords={'latitude': (('y', 'x'), [[999, -1, 999],
+                                              [999, 1, 999],
+                                              [999, -1, 999],
+                                              [999, 1, 999],
+                                              [999, -1, 999],
+                                              [999, 1, 999]]),
                     'longitude': (('y', 'x'), [[999, 1.0, 999],
                                                [999, 2.0, 999],
-                                               [999, 3.0, 999]]),
-                    'acq_time': ('y', np.arange(3).astype('datetime64[s]'))}
+                                               [999, 3.0, 999],
+                                               [999, 4.0, 999],
+                                               [999, 5.0, 999],
+                                               [999, 6.0, 999]]),
+                    'acq_time': ('y', np.arange(6).astype('datetime64[s]'))}
         )
-        lon, time = collector._get_equator_crossing(ds)
-        np.testing.assert_equal(lon, np.nan)
-        self.assertTrue(np.isnat(time))
+        ds['acq_time'].attrs['coords'] = 'latitude longitude'
+        collector = MetadataCollector()
+        lons, times = collector._get_equator_crossings(ds)
+        np.testing.assert_equal(lons, [1, 3])
+        np.testing.assert_equal(times, [np.datetime64('1970-01-01 00:00:00'),
+                                        np.datetime64('1970-01-01 00:00:02')])

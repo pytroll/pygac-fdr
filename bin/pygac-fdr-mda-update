@@ -18,7 +18,7 @@
 
 import argparse
 import logging
-from pygac_fdr.metadata import MetadataCollector, update_metadata
+from pygac_fdr.metadata import MetadataCollector, MetadataUpdater
 from pygac_fdr.utils import logging_on
 
 
@@ -34,4 +34,5 @@ if __name__ == '__main__':
 
     collector = MetadataCollector()
     mda = collector.read_sql(args.dbfile)
-    update_metadata(mda)
+    updater = MetadataUpdater()
+    updater.update(mda)
