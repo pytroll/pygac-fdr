@@ -34,6 +34,7 @@ if __name__ == '__main__':
           description='Python package for creating a Fundamental Data Record (FDR) of AVHRR GAC '
                       'data using pygac',
           long_description=README,
+          long_description_content_type='text/markdown',
           classifiers=["Development Status :: 3 - Alpha",
                        "Intended Audience :: Science/Research",
                        "License :: OSI Approved :: GNU General Public License v3 " +
