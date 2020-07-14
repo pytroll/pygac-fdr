@@ -63,15 +63,13 @@ ADDITIONAL_METADATA = [
      'long_name': 'Longitude where ascending node crosses the equator (can happen twice per file)',
      'units': 'degrees_east',
      'dtype': np.float64,
-     'fill_value': FILL_VALUE_FLOAT,
-     'dim': 'num_eq_cross'},
+     'fill_value': FILL_VALUE_FLOAT},
     {'name': 'equator_crossing_time',
      'long_name': 'UTC time when ascending node crosses the equator (can happen twice per file)',
      'units': 'seconds since 1970-01-01 00:00:00',
      'calendar': 'standard',
      'dtype': np.float64,
-     'fill_value': FILL_VALUE_INT,
-     'dim': 'num_eq_cross'},
+     'fill_value': FILL_VALUE_FLOAT},
     {'name': 'global_quality_flag',
      'long_name': 'Global quality flag',
      'comment': 'If this flag is everything else than "ok", it is recommended not '
@@ -372,17 +370,18 @@ class MetadataUpdater:
                 self._update_file(nc=nc, row=row)
 
     def _to_xarray(self, mda):
+        """Convert pandas DataFrame to xarray Dataset."""
         mda = xr.Dataset(mda)
         mda = mda.rename({'dim_0': 'row'})
         return mda
 
     def _stack(self, mda):
-        """Stack columns to simplify the netCDF file."""
+        """Stack certain columns to simplify the netCDF file."""
         # Stack equator crossing longitudes/times along a new dimension
-        mda['equator_crossing_time'] = (('dim_0', 'num_eq_cross'), np.stack(
+        mda['equator_crossing_time'] = (('row', 'num_eq_cross'), np.stack(
             [mda['equator_crossing_time_1'].values,
              mda['equator_crossing_time_2'].values]).transpose())
-        mda['equator_crossing_longitude'] = (('dim_0', 'num_eq_cross'), np.stack(
+        mda['equator_crossing_longitude'] = (('row', 'num_eq_cross'), np.stack(
             [mda['equator_crossing_longitude_1'].values,
              mda['equator_crossing_longitude_2'].values]).transpose())
         return mda
@@ -407,7 +406,6 @@ class MetadataUpdater:
 
     def _update_file(self, nc, row):
         """Update metadata of a single file."""
-        nc_acq_time = nc.variables['acq_time']
         for add_mda in ADDITIONAL_METADATA:
             add_mda = add_mda.copy()
             var_name = add_mda.pop('name')
@@ -423,18 +421,17 @@ class MetadataUpdater:
                                          shape=data.shape)
 
             # Write data to nc variable. Since netCDF4 cannot handle NaN nor NaT, disable
-            # auto-masking, and set null-data to fill value manually. Furthermore, match
-            # timestamp encoding with the acq_time variable.
-            # nc_var.set_auto_mask(False)
-            # if np.issubdtype(data.dtype, np.datetime64):
-            #     data = encode_cf_datetime(data,
-            #                               units=nc_acq_time.units,
-            #                               calendar=nc_acq_time.calendar)
-            # data = np.nan_to_num(data, nan=fill_value)
-            print(data)
-            # nc_var[:] = data
-            #
-            # # Set attributes of nc variable
-            # for key, val in add_mda.items():
-            #     nc_var.setncattr(key, val)
+            # auto-masking, and set null-data to fill value manually.
+            nc_var.set_auto_mask(False)
+            if np.issubdtype(data.dtype, np.datetime64):
+                data, _, _ = encode_cf_datetime(data,
+                                                units=add_mda['units'],
+                                                calendar=add_mda['calendar'])
+                data = np.nan_to_num(data, nan=fill_value)
+            else:
+                data = data.fillna(fill_value).values
+            nc_var[:] = data
 
+            # Set attributes of nc variable
+            for key, val in add_mda.items():
+                nc_var.setncattr(key, val)
