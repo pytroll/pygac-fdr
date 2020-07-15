@@ -8,6 +8,12 @@ Python package for creating a Fundamental Data Record (FDR) of AVHRR GAC data us
 Installation
 ============
 
+To install the latest release:
+```
+pip install pygac-fdr
+```
+
+To install the latest development version:
 ```
 pip install git+https://github.com/pytroll/pygac-fdr
 ```
