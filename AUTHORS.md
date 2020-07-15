@@ -8,7 +8,7 @@ The following people have made contributions to this project:
 
 - M. D.-B.
 - [Stephan Finkensieper (sfinkens)](https://github.com/sfinkens)
-- M. G.
+- [Mike Grant (mikeggrant-eumetsat)](https://github.com/mikeggrant-eumetsat)
 - [Carlos Horn (carloshorn)](https://github.com/carloshorn)
 - [Martin Raspaud (mraspaud)](https://github.com/mraspaud)
 - [Oliver Sus (oliversus)](https://github.com/oliversus)
