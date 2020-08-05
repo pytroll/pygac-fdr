@@ -56,6 +56,5 @@ def logging_off(for_all=False):
     Args:
         for_all: If True, turn off logging for all modules (default is this package only).
     """
-    satpy.utils.logging_off()
     logger_name = '' if for_all else LOGGER_NAME
     logging.getLogger(logger_name).handlers = [logging.NullHandler()]
