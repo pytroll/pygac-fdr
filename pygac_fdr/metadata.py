@@ -94,8 +94,9 @@ ADDITIONAL_METADATA = [
      'long_name': 'Global quality flag',
      'comment': 'If this flag is everything else than "ok", it is recommended not '
                 'to use the file.',
-     'flag_values': [flag.value for flag in QualityFlags.__members__.values()],
-     'flag_meanings': [name.lower() for name in QualityFlags.__members__.keys()],
+     'flag_values': np.array([flag.value for flag in QualityFlags.__members__.values()],
+                             dtype=np.uint8),
+     'flag_meanings': ' '.join([name.lower() for name in QualityFlags.__members__.keys()]),
      'dtype': np.uint8,
      'fill_value': None}
 ]

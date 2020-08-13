@@ -43,7 +43,7 @@ global_attrs:
     processing_level: 1C
     processing_mode: R
     disposition_mode: O
-    Conventions: CF-1.9 ACDD-1.3
+    Conventions: CF-1.8 ACDD-1.3
     keywords_vocabulary: GCMD Science Keywords, Version 9.1
     standard_name_vocabulary: CF Standard Name Table v73
     licence: EUMETSAT data policy https://www.eumetsat.int/website/home/AboutUs/WhoWeAre/LegalFramework/DataPolicy/index.html

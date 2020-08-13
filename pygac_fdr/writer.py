@@ -140,7 +140,8 @@ DEFAULT_ENCODING = {
     'qual_flags': {'dtype': 'int16',
                    '_FillValue': FILL_VALUE_INT16,
                    'zlib': True,
-                   'complevel': 4}
+                   'complevel': 4},
+    'num_flags': {'dtype': '<S50'}
 }  # refers to renamed datasets
 METOP_PRE_LAUNCH_NUMBERS = {'a': 2, 'b': 1, 'c': 3}
 
