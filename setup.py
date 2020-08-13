@@ -30,6 +30,11 @@ except ImportError:
 if __name__ == '__main__':
     requires = ['setuptools_scm', 'numpy', 'xarray >=0.15.1', 'pandas >=1.0.3', 'netCDF4',
                 'h5py', 'pygac >=1.3.1', 'satpy >=0.21.0', 'pyyaml']
+    extras_require = {
+        "tests": ['cfchecker @ https://github.com/cedadev/cf-checker#egg=cfchecker',
+                  # TODO: Replace with cfchecker >= 4.1.0 once released
+                  'pytest', 'pytest-cov']
+    }
     README = open('README.md', 'r').read()
     setup(name='pygac-fdr',
           description='Python package for creating a Fundamental Data Record (FDR) of AVHRR GAC '
@@ -50,5 +55,6 @@ if __name__ == '__main__':
           scripts=[os.path.join('bin', item) for item in os.listdir('bin')],
           use_scm_version=True,
           install_requires=requires,
+          extras_require=extras_require,
           python_requires='>=3.6',
           )
