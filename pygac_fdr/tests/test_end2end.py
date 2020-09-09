@@ -11,10 +11,26 @@ import xarray as xr
 from pygac_fdr.metadata import QualityFlags
 
 
+def assert_data_close_and_attrs_identical(a, b):
+    xr.testing.assert_allclose(a, b)
+    from xarray.core.utils import dict_equiv
+    from xarray.core.formatting import diff_attrs_repr
+    assert dict_equiv(a.attrs, b.attrs), diff_attrs_repr(a.attrs, b.attrs, 'identical')
+
+
 class EndToEndTestBase(unittest.TestCase):
+    """
+    The test behaviour can be controlled using the following environment variables (set to 0/1
+    to disable/enable):
+
+    PYGAC_FDR_TEST_FAST: Run tests with only one file
+    PYGAC_FDR_TEST_CLEANUP: Cleanup output after testing (successful or not)
+    PYGAC_FDR_TEST_RESUME: Resume testing with existing output files instead of generating new ones
+    """
     @classmethod
     def setUpClass(cls):
         cls.fast = os.environ.get('PYGAC_FDR_TEST_FAST', '0') == '1'
+        cls.resume = os.environ.get('PYGAC_FDR_TEST_RESUME', '0') == '1'
         cls.test_data_dir = os.path.join(os.path.dirname(__file__), 'test_data')
         cls.cfg_file = os.path.join(cls.test_data_dir, '../../../etc/pygac-fdr.yaml')
         cls.tle_dir = os.path.join(cls.test_data_dir, 'tle')
@@ -43,6 +59,12 @@ class EndToEndTestBase(unittest.TestCase):
 
     @classmethod
     def _run(cls, gac_files_gz, dbfile=None):
+        if cls.resume:
+            # Resume testing with existing output files
+            return sorted(
+                glob.glob(os.path.join(cls.output_dir, '*.nc'))
+            )
+
         # Prepare output directory
         if not os.path.isdir(cls.output_dir):
             os.makedirs(cls.output_dir)
@@ -99,12 +121,14 @@ class EndToEndTestBase(unittest.TestCase):
                     # If testing just one file, there is no overlap
                     if self.fast:
                         ds = ds.drop_vars(['overlap_free_start',
-                                           'overlap_free_end'])
+                                           'overlap_free_end'],
+                                           errors='ignore')
                         ds_ref = ds_ref.drop_vars(['overlap_free_start',
-                                                   'overlap_free_end'])
+                                                   'overlap_free_end'],
+                                                   errors='ignore')
 
                     # Compare datasets
-                    xr.testing.assert_identical(ds, ds_ref)
+                    assert_data_close_and_attrs_identical(ds, ds_ref)
 
 
 class EndToEndTestNormal(EndToEndTestBase):
@@ -281,15 +305,19 @@ class EndToEndTestCorrupt(EndToEndTestBase):
     def setUpClass(cls):
         super(EndToEndTestCorrupt, cls).setUpClass()
 
-        gac_files_gz = sorted(glob.glob(os.path.join(cls.input_dir, 'corrupt', '*.gz')))
-        cls.nc_files_ref = sorted(os.path.join(cls.output_dir_ref, 'corrupt', '*.nc'))
+        gac_files_gz = sorted(
+            glob.glob(os.path.join(cls.input_dir, 'corrupt', '*.gz'))
+        )
+        cls.nc_files_ref = sorted(
+            glob.glob(os.path.join(cls.output_dir_ref, 'corrupt', '*.nc'))
+        )
         if cls.fast:
             gac_files_gz = [gac_files_gz[-1]]
             cls.nc_files_ref = [cls.nc_files_ref[-1]]
 
         # Process "corrupt" files
         cls.nc_files = cls._run(gac_files_gz)
-        cls.nc_files_ref = []  # TODO: Go on here
+        cls.nc_files = sorted(glob.glob(os.path.join(cls.output_dir, '*.nc')))
 
     def test_regression(self):
         self._tst_regression(self.nc_files, self.nc_files_ref)
