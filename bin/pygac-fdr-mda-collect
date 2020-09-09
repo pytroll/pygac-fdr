@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # pygac-fdr. If not, see <http://www.gnu.org/licenses/>.
+"""Collect metadata from level 1c files"""
 
 import argparse
 import logging
@@ -24,9 +25,15 @@ from pygac_fdr.utils import logging_on, LOGGER_NAME
 
 LOG = logging.getLogger(LOGGER_NAME)
 
+tooltip = """
+tooltip: %(prog)s --dbfile example.db @example_filenames.txt;
+for reading a long list of filenames from an arguments file.
+"""
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Collect metadata from level 1c files')
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     fromfile_prefix_chars='@',
+                                     epilog=tooltip)
     parser.add_argument('--dbfile', required=True, type=str, help='Metadata database to be written')
     parser.add_argument('--if-exists', choices=('append', 'fail', 'replace'), default='fail',
                         help='What to do if database table already exists')
