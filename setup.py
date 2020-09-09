@@ -31,7 +31,7 @@ if __name__ == '__main__':
     requires = ['setuptools_scm', 'numpy', 'xarray >=0.15.1', 'pandas >=1.0.3', 'netCDF4',
                 'h5py', 'pygac >=1.3.1', 'satpy >=0.21.0', 'pyyaml']
     extras_require = {
-        "tests": ['cfchecker @ https://github.com/cedadev/cf-checker#egg=cfchecker',
+        "tests": ['cfchecker @ git+https://github.com/cedadev/cf-checker#egg=cfchecker',
                   # TODO: Replace with cfchecker >= 4.1.0 once released
                   'pytest', 'pytest-cov']
     }
