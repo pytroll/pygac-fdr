@@ -1,3 +1,22 @@
+"""End-to-end tests for pygac-fdr.
+
+Download test data set, run the entire chain of processing steps (read GAC files, write data 
+to netCDF, enhance metadata) and compare results against reference data. They should be identical.
+
+Usage:
+
+$ pytest test_end2end.py
+
+The test behaviour can be controlled using the following environment variables (set to 0/1
+to disable/enable):
+
+- PYGAC_FDR_TEST_DATA: Where to download test data
+- PYGAC_FDR_TEST_FAST: Run tests with only one file
+- PYGAC_FDR_TEST_CLEANUP: Cleanup output after testing (successful or not)
+- PYGAC_FDR_TEST_RESUME: Resume testing with existing output files instead of generating new ones
+
+"""
+
 from cfchecker.cfchecks import CFChecker
 import glob
 import gzip
@@ -19,30 +38,38 @@ def assert_data_close_and_attrs_identical(a, b):
 
 
 class EndToEndTestBase(unittest.TestCase):
-    """
-    The test behaviour can be controlled using the following environment variables (set to 0/1
-    to disable/enable):
-
-    PYGAC_FDR_TEST_FAST: Run tests with only one file
-    PYGAC_FDR_TEST_CLEANUP: Cleanup output after testing (successful or not)
-    PYGAC_FDR_TEST_RESUME: Resume testing with existing output files instead of generating new ones
-    """
     @classmethod
     def setUpClass(cls):
         cls.fast = os.environ.get('PYGAC_FDR_TEST_FAST', '0') == '1'
         cls.resume = os.environ.get('PYGAC_FDR_TEST_RESUME', '0') == '1'
-        cls.test_data_dir = os.path.join(os.path.dirname(__file__), 'test_data')
-        cls.cfg_file = os.path.join(cls.test_data_dir, '../../../etc/pygac-fdr.yaml')
+        cls.test_data_dir = os.environ.get(
+            'PYGAC_FDR_TEST_DATA',
+            os.path.join(os.path.dirname(__file__), 'test_data')
+        )
+        if not os.path.isdir(cls.test_data_dir):
+            os.makedirs(cls.test_data_dir)
+        cls.cfg_file = os.path.join(os.path.dirname(__file__), '../../etc/pygac-fdr.yaml')
         cls.tle_dir = os.path.join(cls.test_data_dir, 'tle')
         cls.input_dir = os.path.join(cls.test_data_dir, 'input')
         cls.output_dir = os.path.join(cls.test_data_dir, 'output')
         cls.output_dir_ref = os.path.join(cls.test_data_dir, 'output_ref')
+        cls.fetch_test_data()
 
     @classmethod
-    def _call_subproc(cls, cmd):
-        ret = subprocess.call(cmd)
+    def _call_subproc(cls, cmd, cwd='.'):
+        ret = subprocess.call(cmd, cwd=cwd)
         if ret:
             raise RuntimeError('Subprocess {} failed with return code {}'.format(cmd, ret))
+
+    @classmethod
+    def fetch_test_data(cls):
+        """Fetch test data (input & reference output).
+
+        Existing files will only be re-downloaded if the server has a newer version.
+        """
+        cmd = ['wget', '--mirror', '--no-host-directories', '--no-parent', '--cut-dirs=4', '--reject="index.html*"',
+               'https://public.cmsaf.dwd.de/data/sfinkens/pygac-fdr/test_data/']
+        cls._call_subproc(cmd, cwd=cls.test_data_dir)
 
     @classmethod
     def _unzip_gac_files(cls, filenames_gz, output_dir):
@@ -132,7 +159,10 @@ class EndToEndTestBase(unittest.TestCase):
 
 
 class EndToEndTestNormal(EndToEndTestBase):
-    """End-to-end test with normal data (no corruption)"""
+    """End-to-end test with normal data (no corruption).
+
+    Also compare metadata against results from CLARA-A3 feedback loop 1.
+    """
     mda_exp = {
         'NSS.GHRR.NA.D81089.S0054.E0246.B0912021.GC': {
             'nc_file': 'AVHRR-GAC_FDR_1C_N06_19810330T005421Z_19810330T024632Z_R_O_20200101T000000Z_0100.nc',
@@ -300,7 +330,7 @@ class EndToEndTestNormal(EndToEndTestBase):
 
 
 class EndToEndTestCorrupt(EndToEndTestBase):
-    """End-to-end test with corrupt data."""
+    """End-to-end test with data that have common defects."""
     @classmethod
     def setUpClass(cls):
         super(EndToEndTestCorrupt, cls).setUpClass()
