@@ -41,14 +41,7 @@ if __name__ == '__main__':
     parser.add_argument('--verbose', action='store_true', help='Increase verbosity')
     args = parser.parse_args()
     logging_on(logging.DEBUG if args.verbose else logging.INFO)
-    if args.verbose:
-        import pandas as pd
-        pd.set_option('display.max_rows', None)
-        pd.set_option('display.max_columns', None)
-        pd.set_option('display.width', None)
-        pd.set_option('display.max_colwidth', 22)
 
     collector = MetadataCollector()
     mda = collector.get_metadata(args.filenames)
-    LOG.debug(mda)
     collector.save_sql(mda, args.dbfile, args.if_exists)
