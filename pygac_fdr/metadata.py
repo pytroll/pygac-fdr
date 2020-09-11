@@ -114,7 +114,6 @@ class FileMetadata(Base):
     __tablename__ = 'metadata'
     
     platform = Column(String)
-    level_1 = Column(Integer)
     start_time = Column(DateTime)
     end_time = Column(DateTime)
     along_track = Column(Integer)
@@ -152,7 +151,6 @@ class MetadataCollector:
         """Collect and complement metadata from the given level 1c files."""
         LOG.info('Collecting metadata')
         df = pd.DataFrame(self._collect_metadata(filenames))
-
         df.sort_values(by=['start_time', 'end_time'], inplace=True)
 
         # Set quality flags
@@ -169,32 +167,31 @@ class MetadataCollector:
     def save_sql(self, mda, dbfile, if_exists):
         """Save metadata to sqlite database."""
         engine = sqlalchemy.create_engine('sqlite:///{0}'.format(dbfile))
-        mda.to_sql(FileMetadata.__tablename__, engine, if_exists=if_exists)
+        mda.to_sql(name="metadata", con=engine, if_exists=if_exists)
 
     def read_sql(self, dbfile):
         """Read metadata from sqlite database."""
         engine = sqlalchemy.create_engine('sqlite:///{0}'.format(dbfile))
-        mda = pd.read_sql_table(FileMetadata.__tablename__, engine,
-                                index_col=['platform', 'level_1'])
+        mda = pd.read_sql_table("metadata", engine, index_col=['platform', 'level_1'])
         return mda
 
     def _extract_fromfile(self, filename):
+        """Extract metadata from a single file."""
         LOG.debug('Collecting metadata from {}'.format(filename))
         with xr.open_dataset(filename) as ds:
             midnight_line = np.float64(self._get_midnight_line(ds['acq_time']))
             eq_cross_lons, eq_cross_times = self._get_equator_crossings(ds)
             metadata = FileMetadata(
                 platform=ds.attrs['platform'].split('>')[-1].strip(),
-                level_1=ds['acq_time'].values[0],
-                start_time=ds['acq_time'].values[-1],
-                end_time=ds.dims['y'],
-                along_track=os.path.basename(filename),
-                filename=ds.attrs['orbit_number_start'],
-                orbit_number_start=ds.attrs['orbit_number_end'],
-                orbit_number_end=eq_cross_lons[0],
-                equator_crossing_longitude_1=eq_cross_times[0],
+                start_time=ds['acq_time'].values[0],
+                end_time=ds['acq_time'].values[-1],
+                along_track=ds.dims['y'],
+                filename=filename,
+                orbit_number_start=ds.attrs['orbit_number_start'],
+                orbit_number_end=ds.attrs['orbit_number_end'],
+                equator_crossing_longitude_1=eq_cross_lons[0],
                 equator_crossing_time_1=eq_cross_times[0],
-                equator_crossing_longitude_2=eq_cross_lons[1],
+                equator_crossing_longitude_2=eq_cross_lons[0],
                 equator_crossing_time_2=eq_cross_times[1],
                 midnight_line=midnight_line,
                 overlap_free_start=np.nan,
@@ -214,7 +211,7 @@ class MetadataCollector:
         Session = sessionmaker(bind=engine)
         session = Session()
         # get set of processed files in case of a restart
-        wanted = set(map(os.path.basename, filenames))
+        wanted = set(filenames)
         done = set(
             filename for filename, in session.query(FileMetadata.filename)
         )
@@ -229,7 +226,7 @@ class MetadataCollector:
         session.commit()
         session.close()
         # load data into memory and remove the checkpoint database
-        metadata = pd.read_sql_table("metadata", engine)
+        metadata = pd.read_sql_table(FileMetadata.__tablename__, engine)
         os.remove(CHECKPOINT_DB)
         return metadata
 
