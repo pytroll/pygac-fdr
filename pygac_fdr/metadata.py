@@ -109,10 +109,11 @@ CHECKPOINT_STEP = 100
 CHECKPOINT_DB = "_checkpoint.db"
 Base = declarative_base()
 
+
 class FileMetadata(Base):
     """Object relational model for SQL database."""
     __tablename__ = 'metadata'
-    
+
     platform = Column(String)
     start_time = Column(DateTime)
     end_time = Column(DateTime)
