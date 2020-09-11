@@ -1,0 +1,12 @@
+test_data_dir: /path/to/test/data
+# Where to download test data
+cleanup: False 
+# Cleanup output after testing (successful or not)
+resume: True
+# Resume testing with existing output files instead of generating new ones
+fast: False
+# Run tests with only one file
+rtol: 1e-8
+# Relative tolerance for numerical comparisons
+atol: 1e-5
+# Absolute tolerance for numerical comparisons

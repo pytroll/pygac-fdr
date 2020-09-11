@@ -33,7 +33,7 @@ if __name__ == '__main__':
     extras_require = {
         "tests": ['cfchecker @ git+https://github.com/cedadev/cf-checker#egg=cfchecker',
                   # TODO: Replace with cfchecker >= 4.1.0 once released
-                  'pytest', 'pytest-cov']
+                  'pytest', 'pytest-cov', 'pytest-testconfig', 'matplotlib']
     }
     README = open('README.md', 'r').read()
     setup(name='pygac-fdr',

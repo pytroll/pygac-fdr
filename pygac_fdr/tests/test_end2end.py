@@ -5,33 +5,36 @@ to netCDF, enhance metadata) and compare results against reference data. They sh
 
 Usage:
 
-$ pytest test_end2end.py
+$ python test_end2end.py
 
-The test behaviour can be controlled using the following environment variables (set to 0/1
-to disable/enable):
+The test behaviour can be controlled using the configuration file test_end2end.yaml .
 
-- PYGAC_FDR_TEST_DATA: Where to download test data
-- PYGAC_FDR_TEST_FAST: Run tests with only one file
-- PYGAC_FDR_TEST_CLEANUP: Cleanup output after testing (successful or not)
-- PYGAC_FDR_TEST_RESUME: Resume testing with existing output files instead of generating new ones
-
+Do not use pytest as this will eat up all your memory, because pytest caches all generated figures
+until the end of the test suite for some reason.
 """
 
 from cfchecker.cfchecks import CFChecker
 import glob
 import gzip
+import logging
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 import shutil
 import subprocess
 import unittest
 import xarray as xr
+import yaml
 
 from pygac_fdr.metadata import QualityFlags
+from pygac_fdr.utils import logging_on, LOGGER_NAME
 
 
-def assert_data_close_and_attrs_identical(a, b):
-    xr.testing.assert_allclose(a, b)
+LOG = logging.getLogger(LOGGER_NAME)
+
+
+def assert_data_close_and_attrs_identical(a, b, rtol, atol):
+    xr.testing.assert_allclose(a, b, rtol=rtol, atol=atol)
     from xarray.core.utils import dict_equiv
     from xarray.core.formatting import diff_attrs_repr
     assert dict_equiv(a.attrs, b.attrs), diff_attrs_repr(a.attrs, b.attrs, 'identical')
@@ -40,19 +43,26 @@ def assert_data_close_and_attrs_identical(a, b):
 class EndToEndTestBase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.fast = os.environ.get('PYGAC_FDR_TEST_FAST', '0') == '1'
-        cls.resume = os.environ.get('PYGAC_FDR_TEST_RESUME', '0') == '1'
-        cls.test_data_dir = os.environ.get(
-            'PYGAC_FDR_TEST_DATA',
-            os.path.join(os.path.dirname(__file__), 'test_data')
-        )
-        if not os.path.isdir(cls.test_data_dir):
-            os.makedirs(cls.test_data_dir)
+        logging_on(logging.DEBUG, for_all=True)
+
+        # Read config file
+        with open(os.path.join(os.path.dirname(__file__), 'test_end2end.yaml')) as fh:
+            config = yaml.safe_load(fh)
+        cls.test_data_dir = config['test_data_dir']
+        cls.cleanup = config['cleanup']
+        cls.resume = config['resume']
+        cls.fast = config['fast']
+        cls.rtol = float(config['rtol'])
+        cls.atol = float(config['atol'])
+
+        # Set class attributes
         cls.cfg_file = os.path.join(os.path.dirname(__file__), '../../etc/pygac-fdr.yaml')
         cls.tle_dir = os.path.join(cls.test_data_dir, 'tle')
         cls.input_dir = os.path.join(cls.test_data_dir, 'input')
-        cls.output_dir = os.path.join(cls.test_data_dir, 'output')
+        cls.output_dir = None  # to be set by subclasses
         cls.output_dir_ref = os.path.join(cls.test_data_dir, 'output_ref')
+
+        # Fetch test data from data server
         cls.fetch_test_data()
 
     @classmethod
@@ -63,10 +73,13 @@ class EndToEndTestBase(unittest.TestCase):
 
     @classmethod
     def fetch_test_data(cls):
-        """Fetch test data (input & reference output).
+        """Fetch test data (input & reference output) from data server.
 
         Existing files will only be re-downloaded if the server has a newer version.
         """
+        LOG.info('Fetching test data')
+        if not os.path.isdir(cls.test_data_dir):
+            os.makedirs(cls.test_data_dir)
         cmd = ['wget', '--mirror', '--no-host-directories', '--no-parent', '--cut-dirs=4', '--reject="index.html*"',
                'https://public.cmsaf.dwd.de/data/sfinkens/pygac-fdr/test_data/']
         cls._call_subproc(cmd, cwd=cls.test_data_dir)
@@ -78,6 +91,7 @@ class EndToEndTestBase(unittest.TestCase):
             basename_gz = os.path.basename(filename_gz)
             basename = os.path.splitext(basename_gz)[0]
             filename = os.path.join(output_dir, os.path.basename(basename))
+            LOG.info('Decompressing {}'.format(filename_gz))
             with gzip.open(filename_gz, 'rb') as f_in:
                 with open(filename, 'wb') as f_out:
                     shutil.copyfileobj(f_in, f_out)
@@ -86,8 +100,13 @@ class EndToEndTestBase(unittest.TestCase):
 
     @classmethod
     def _run(cls, gac_files_gz, dbfile=None):
+        """Read GAC files and write calibrated scenes to netCDF.
+
+        If database file is given, also collect & update metadata.
+        """
         if cls.resume:
             # Resume testing with existing output files
+            LOG.info('Resuming test with existing output files')
             return sorted(
                 glob.glob(os.path.join(cls.output_dir, '*.nc'))
             )
@@ -123,7 +142,7 @@ class EndToEndTestBase(unittest.TestCase):
 
     @classmethod
     def _cleanup_output_dir(cls):
-        if os.environ.get('PYGAC_FDR_TEST_CLEANUP', '1') == '1':
+        if cls.cleanup:
             for item in os.listdir(cls.output_dir):
                 item = os.path.join(cls.output_dir, item)
                 if os.path.isfile(item):
@@ -134,10 +153,12 @@ class EndToEndTestBase(unittest.TestCase):
         cls._cleanup_output_dir()
 
     def _tst_regression(self, nc_files, nc_files_ref):
-        """Test entire netCDF contents against reference files."""
+        """Test entire netCDF contents against reference file."""
         dynamic_attrs = ['date_created', 'history', 'version_satpy', 'version_pygac',
                          'version_pygac_fdr']
+        failed = []
         for nc_file, nc_file_ref in zip(nc_files, nc_files_ref):
+            LOG.info('Performing regression test with {}'.format(nc_file))
             with xr.open_dataset(nc_file) as ds:
                 with xr.open_dataset(nc_file_ref) as ds_ref:
                     # Remove dynamic attributes
@@ -155,7 +176,73 @@ class EndToEndTestBase(unittest.TestCase):
                                                    errors='ignore')
 
                     # Compare datasets
-                    assert_data_close_and_attrs_identical(ds, ds_ref)
+                    try:
+                        assert_data_close_and_attrs_identical(ds, ds_ref,
+                                                              atol=self.atol,
+                                                              rtol=self.rtol)
+                    except AssertionError:
+                        failed.append(nc_file)
+                        self._plot_diffs(ds_ref=ds_ref, ds_tst=ds, file_tst=nc_file)
+
+        if failed:
+            raise AssertionError(
+                'The following files failed the regression test:\n{}'.format('\n'.join(failed))
+            )
+
+    def _plot_diffs(self, ds_ref, ds_tst, file_tst):
+        """Plot differences and save figure to output directory."""
+        cmp_vars = {
+            'reflectance_channel_1': {},
+            'reflectance_channel_2': {},
+            'brightness_temperature_channel_3': {},
+            'reflectance_channel_3a': {},
+            'brightness_temperature_channel_3b': {},
+            'brightness_temperature_channel_4': {},
+            'brightness_temperature_channel_5': {},
+            'longitude': {'vmin': -180, 'vmax': 180},
+            'latitude': {'vmin': -90, 'vmax': 90},
+            'solar_zenith_angle': {},
+            'solar_azimuth_angle': {},
+            'sensor_zenith_angle': {},
+            'sensor_azimuth_angle': {},
+            'sun_sensor_azimuth_difference_angle': {},
+        }
+
+        for varname, prop in cmp_vars.items():
+            try:
+                diff = ds_tst[varname] - ds_ref[varname]
+            except KeyError:
+                continue
+            vmin = min(ds_tst[varname].min(), ds_ref[varname].min())
+            vmax = max(ds_tst[varname].max(), ds_ref[varname].max())
+            min_diff = diff.min()
+            max_diff = diff.max()
+            abs_max_diff = max(abs(min_diff), abs(max_diff))
+
+            fig, (ax_ref, ax_tst, ax_diff) = plt.subplots(nrows=3,
+                                                          figsize=(20, 8.5),
+                                                          sharex=True)
+            ds_ref[varname].transpose().plot(
+                ax=ax_ref, vmin=prop.get('vmin', vmin), vmax=prop.get('vmax', vmax)
+            )
+            ds_tst[varname].transpose().plot(
+                ax=ax_tst, vmin=prop.get('vmin', vmin), vmax=prop.get('vmax', vmax)
+            )
+            diff.transpose().plot(
+                ax=ax_diff, vmin=-0.8 * abs_max_diff, vmax=0.8 * abs_max_diff, cmap='RdBu_r'
+            )
+
+            ax_ref.set_title('Reference', fontsize=10)
+            ax_tst.set_title('Test', fontsize=10)
+            ax_diff.set_title('Test - Reference', fontsize=10)
+            ax_ref.set_xlabel(None)
+            ax_tst.set_xlabel(None)
+            plt.suptitle(os.path.basename(file_tst))
+
+            ofile = os.path.join(self.output_dir,
+                                 '{}_{}.png'.format(os.path.basename(file_tst), varname))
+            plt.savefig(ofile, bbox_inches='tight')
+            plt.close('all')
 
 
 class EndToEndTestNormal(EndToEndTestBase):
@@ -293,6 +380,7 @@ class EndToEndTestNormal(EndToEndTestBase):
             cls.nc_files_ref = [cls.nc_files_ref[-1]]
 
         # Process "normal" files
+        cls.output_dir = os.path.join(cls.test_data_dir, 'output', 'normal')
         cls.nc_files = cls._run(gac_files_gz, dbfile)
 
         # Find corresponding reference output
@@ -322,6 +410,7 @@ class EndToEndTestNormal(EndToEndTestBase):
         """Test CF compliance of generated files using CF checker."""
         checker = CFChecker()
         for nc_file in self.nc_files:
+            LOG.info('Checking CF compliance of {}'.format(nc_file))
             res = checker.checker(nc_file)
             global_err = any([res['global'][cat] for cat in ('ERROR', 'FATAL')])
             var_err = any([(v['ERROR'] or v['FATAL']) for v in res['variables'].values()])
@@ -346,8 +435,12 @@ class EndToEndTestCorrupt(EndToEndTestBase):
             cls.nc_files_ref = [cls.nc_files_ref[-1]]
 
         # Process "corrupt" files
+        cls.output_dir = os.path.join(cls.test_data_dir, 'output', 'corrupt')
         cls.nc_files = cls._run(gac_files_gz)
-        cls.nc_files = sorted(glob.glob(os.path.join(cls.output_dir, '*.nc')))
 
     def test_regression(self):
         self._tst_regression(self.nc_files, self.nc_files_ref)
+
+
+if __name__ == '__main__':
+    unittest.main()
