@@ -39,7 +39,7 @@ LOG = logging.getLogger(LOGGER_NAME)
 DATASET_NAMES = {
     '1': 'reflectance_channel_1',
     '2': 'reflectance_channel_2',
-    '3': 'reflectance_channel_3',
+    '3': 'brightness_temperature_3',
     '3a': 'reflectance_channel_3a',
     '3b': 'brightness_temperature_channel_3b',
     '4': 'brightness_temperature_channel_4',
