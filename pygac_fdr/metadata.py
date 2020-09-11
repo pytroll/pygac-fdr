@@ -153,7 +153,6 @@ class MetadataCollector:
         LOG.info('Collecting metadata')
         df = pd.DataFrame(self._collect_metadata(filenames))
 
-        df = pd.read_sql_table("metadata", self.db_engine)
         df.sort_values(by=['start_time', 'end_time'], inplace=True)
 
         # Set quality flags
@@ -230,9 +229,9 @@ class MetadataCollector:
         session.commit()
         session.close()
         # load data into memory and remove the checkpoint database
-        metadata = pd.read_sql_table("metadata", self.db_engine)
+        metadata = pd.read_sql_table("metadata", engine)
         os.remove(CHECKPOINT_DB)
-        return pd.read_sql_table("metadata", self.db_engine)
+        return metadata
 
     def _get_midnight_line(self, acq_time):
         """Find scanline where the UTC date increases by one day.
