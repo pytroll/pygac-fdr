@@ -1,6 +1,6 @@
 """End-to-end tests for pygac-fdr.
 
-Download test data set, run the entire chain of processing steps (read GAC files, write data 
+Download test data set, run the entire chain of processing steps (read GAC files, write data
 to netCDF, enhance metadata) and compare results against reference data. They should be identical.
 
 Usage:
@@ -170,10 +170,10 @@ class EndToEndTestBase(unittest.TestCase):
                     if self.fast:
                         ds = ds.drop_vars(['overlap_free_start',
                                            'overlap_free_end'],
-                                           errors='ignore')
+                                          errors='ignore')
                         ds_ref = ds_ref.drop_vars(['overlap_free_start',
                                                    'overlap_free_end'],
-                                                   errors='ignore')
+                                                  errors='ignore')
 
                     # Compare datasets
                     try:
