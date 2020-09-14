@@ -8,7 +8,7 @@
 # - atol: Absolute tolerance for numerical comparisons
 
 test_data_url: https://public.cmsaf.dwd.de/data/sfinkens/pygac-fdr/test_data/
-test_data_dir: /path/to/test/data
+test_data_dir: test_data/
 cleanup: True
 resume: False
 fast: False
