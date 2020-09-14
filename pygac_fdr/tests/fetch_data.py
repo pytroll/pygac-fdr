@@ -39,7 +39,7 @@ def fetch_test_data(url, target_dir):
         os.makedirs(target_dir)
     url_p = urlparse(url)
     cut_dirs = len(url_p.path.strip('/').split('/'))
-    cmd = ['wget', '--quiet', '--mirror', '--no-host-directories', '--no-parent', '--cut-dirs',
+    cmd = ['wget', '--no-verbose', '--mirror', '--no-host-directories', '--no-parent', '--cut-dirs',
            str(cut_dirs), '--reject="index.html*"', url]
     call_subproc(cmd, cwd=target_dir)
 
