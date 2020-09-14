@@ -22,7 +22,7 @@ matrix:
 install:
 - git clone --depth 1 git://github.com/astropy/ci-helpers.git
 - source ci-helpers/travis/setup_conda.sh
-- pip install -e .
+- pip install -e .[tests]
 before_script:
 - if [[ $PYTHON_VERSION == 3.7 ]]; then python pygac_fdr/tests/fetch_data.py; fi
 script:
