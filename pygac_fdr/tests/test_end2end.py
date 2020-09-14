@@ -66,7 +66,7 @@ class EndToEndTestBase(unittest.TestCase):
             with self.subTest(attribute=attr):
                 time_a = isoparse(attrs_a.pop(attr))
                 time_b = isoparse(attrs_b.pop(attr))
-                self.assertLess((time_b - time_a).total_seconds(), 0.001)
+                self.assertLess(abs((time_b - time_a).total_seconds()), 2)
 
     def _assert_numerical_attrs_close(self, attrs_a, attrs_b):
         numerical_attrs = [
