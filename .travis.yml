@@ -12,7 +12,7 @@ env:
   - CONDA_CHANNELS='conda-forge'
   - CONDA_CHANNEL_PRIORITY="strict"
   - UNSTABLE_DEPS=False
-  - EVENT_TYPE=cron  # TODO: replace with TRAVIS_EVENT_TYPE
+  - FOO_BAR=cron  # TODO: replace with TRAVIS_EVENT_TYPE
 jobs:
   include:
   - name: "Python 3.7"
@@ -42,10 +42,10 @@ install:
   fi
 - pip install -e .[tests]
 before_script:
-- if [[ $PYTHON_VERSION == 3.7 && EVENT_TYPE == "cron" ]]; then python pygac_fdr/tests/fetch_data.py; fi
+- if [[ $PYTHON_VERSION == 3.7 && FOO_BAR == "cron" ]]; then python pygac_fdr/tests/fetch_data.py; fi
 script:
 - pytest --cov=pygac_fdr pygac_fdr/tests --ignore=pygac_fdr/tests/test_end2end.py
-- if [[ $PYTHON_VERSION == 3.7 && EVENT_TYPE == "cron" ]]; then python pygac_fdr/tests/test_end2end.py; fi
+- if [[ $PYTHON_VERSION == 3.7 && FOO_BAR == "cron" ]]; then python pygac_fdr/tests/test_end2end.py; fi
 after_success:
 - if [[ $PYTHON_VERSION == 3.7 ]]; then coveralls; fi
 deploy:
