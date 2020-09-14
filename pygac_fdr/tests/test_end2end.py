@@ -34,7 +34,6 @@ from cfchecker.cfchecks import CFChecker
 import glob
 import gzip
 import logging
-import matplotlib.pyplot as plt
 import numpy as np
 import os
 import shutil
@@ -51,19 +50,18 @@ LOG = logging.getLogger(LOGGER_NAME)
 
 
 def call_subproc(cmd, cwd='.'):
+    LOG.info('Calling subprocess {}'.format(cmd))
     ret = subprocess.call(cmd, cwd=cwd)
     if ret:
         raise RuntimeError('Subprocess {} failed with return code {}'.format(cmd, ret))
 
 
-def assert_data_close_and_attrs_identical(a, b, rtol, atol):
-    xr.testing.assert_allclose(a, b, rtol=rtol, atol=atol)
-    from xarray.core.utils import dict_equiv
-    from xarray.core.formatting import diff_attrs_repr
-    assert dict_equiv(a.attrs, b.attrs), diff_attrs_repr(a.attrs, b.attrs, 'identical')
-        
-
 class EndToEndTestBase(unittest.TestCase):
+    def assert_attrs_identical(self, a, b):
+        from xarray.core.utils import dict_equiv
+        from xarray.core.formatting import diff_attrs_repr
+        assert dict_equiv(a.attrs, b.attrs), diff_attrs_repr(a.attrs, b.attrs, 'identical')
+
     @classmethod
     def setUpClass(cls):
         logging_on(logging.DEBUG, for_all=True)
@@ -77,6 +75,7 @@ class EndToEndTestBase(unittest.TestCase):
         cls.fast = config['fast']
         cls.rtol = float(config['rtol'])
         cls.atol = float(config['atol'])
+        cls.plot = config['plot']
 
         # Set class attributes
         cls.cfg_file = os.path.join(os.path.dirname(__file__), '../../etc/pygac-fdr.yaml')
@@ -157,41 +156,39 @@ class EndToEndTestBase(unittest.TestCase):
         """Test entire netCDF contents against reference file."""
         dynamic_attrs = ['date_created', 'history', 'version_satpy', 'version_pygac',
                          'version_pygac_fdr']
-        failed = []
         for nc_file, nc_file_ref in zip(nc_files, nc_files_ref):
             LOG.info('Performing regression test with {}'.format(nc_file))
-            with xr.open_dataset(nc_file) as ds:
-                with xr.open_dataset(nc_file_ref) as ds_ref:
-                    # Remove dynamic attributes
-                    for attr in dynamic_attrs:
-                        ds.attrs.pop(attr)
-                        ds_ref.attrs.pop(attr)
+            with self.subTest(nc_file=nc_file):
+                with xr.open_dataset(nc_file) as ds:
+                    with xr.open_dataset(nc_file_ref) as ds_ref:
+                        # Remove dynamic attributes
+                        for attr in dynamic_attrs:
+                            ds.attrs.pop(attr)
+                            ds_ref.attrs.pop(attr)
 
-                    # If testing just one file, there is no overlap
-                    if self.fast:
-                        ds = ds.drop_vars(['overlap_free_start',
-                                           'overlap_free_end'],
-                                          errors='ignore')
-                        ds_ref = ds_ref.drop_vars(['overlap_free_start',
-                                                   'overlap_free_end'],
-                                                  errors='ignore')
+                        # If testing just one file, there is no overlap
+                        if self.fast:
+                            ds = ds.drop_vars(['overlap_free_start',
+                                               'overlap_free_end'],
+                                              errors='ignore')
+                            ds_ref = ds_ref.drop_vars(['overlap_free_start',
+                                                       'overlap_free_end'],
+                                                      errors='ignore')
 
-                    # Compare datasets
-                    try:
-                        assert_data_close_and_attrs_identical(ds, ds_ref,
-                                                              atol=self.atol,
-                                                              rtol=self.rtol)
-                    except AssertionError:
-                        failed.append(nc_file)
-                        self._plot_diffs(ds_ref=ds_ref, ds_tst=ds, file_tst=nc_file)
-
-        if failed:
-            raise AssertionError(
-                'The following files failed the regression test:\n{}'.format('\n'.join(failed))
-            )
+                        # Compare datasets
+                        self.assert_attrs_identical(ds, ds_ref)
+                        try:
+                            xr.testing.assert_allclose(ds, ds_ref,
+                                                       atol=self.atol, rtol=self.rtol)
+                        except AssertionError:
+                            if self.plot:
+                                self._plot_diffs(ds_ref=ds_ref, ds_tst=ds, file_tst=nc_file)
+                            raise
 
     def _plot_diffs(self, ds_ref, ds_tst, file_tst):
         """Plot differences and save figure to output directory."""
+        import matplotlib.pyplot as plt
+
         cmp_vars = {
             'reflectance_channel_1': {},
             'reflectance_channel_2': {},
@@ -223,13 +220,13 @@ class EndToEndTestBase(unittest.TestCase):
             fig, (ax_ref, ax_tst, ax_diff) = plt.subplots(nrows=3,
                                                           figsize=(20, 8.5),
                                                           sharex=True)
-            ds_ref[varname].transpose().plot(
+            ds_ref[varname].transpose().plot.imshow(
                 ax=ax_ref, vmin=prop.get('vmin', vmin), vmax=prop.get('vmax', vmax)
             )
-            ds_tst[varname].transpose().plot(
+            ds_tst[varname].transpose().plot.imshow(
                 ax=ax_tst, vmin=prop.get('vmin', vmin), vmax=prop.get('vmax', vmax)
             )
-            diff.transpose().plot(
+            diff.transpose().plot.imshow(
                 ax=ax_diff, vmin=-0.8 * abs_max_diff, vmax=0.8 * abs_max_diff, cmap='RdBu_r'
             )
 
@@ -444,4 +441,4 @@ class EndToEndTestCorrupt(EndToEndTestBase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(verbosity=2)

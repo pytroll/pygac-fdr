@@ -6,6 +6,7 @@
 # - fast: Run tests with only one file
 # - rtol: Relative tolerance for numerical comparisons
 # - atol: Absolute tolerance for numerical comparisons
+# - plot: Plot differences if test fails
 
 test_data_url: https://public.cmsaf.dwd.de/data/sfinkens/pygac-fdr/test_data/
 test_data_dir: test_data/
@@ -14,3 +15,4 @@ resume: False
 fast: False
 rtol: 1e-8
 atol: 1e-5
+plot: False
