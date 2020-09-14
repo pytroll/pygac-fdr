@@ -14,23 +14,20 @@ env:
   - UNSTABLE_DEPS=False
 jobs:
   include:
-#  - name: "Python 3.6"
-#    env: PYTHON_VERSION=3.6
-#    os: linux
   - name: "Python 3.7"
     env: PYTHON_VERSION=3.7
     os: linux
-#  - name: "Python 3.8"
-#    env: PYTHON_VERSION=3.8
-#    os: linux
-  - name: "Python 3.8 (unstable)"
+  - name: "Python 3.7 (unstable)"
     env:
-      - PYTHON_VERSION=3.8
+      - PYTHON_VERSION=3.7
       - UNSTABLE_DEPS=True
+    os: linux
+  - name: "Python 3.8"
+    env: PYTHON_VERSION=3.8
     os: linux
 
   allow_failures:
-  - name: "Python 3.8 (unstable)"
+  - name: "Python 3.7 (unstable)"
 
 install:
 - git clone --depth 1 git://github.com/astropy/ci-helpers.git
@@ -40,7 +37,7 @@ install:
     git+https://github.com/pydata/xarray
     git+https://github.com/pydata/pandas
     git+https://github.com/pytroll/satpy
-    git+https://github.com/pytroll/pygac
+    git+https://github.com/pytroll/pygac;
   fi
 - pip install -e .[tests]
 before_script:
