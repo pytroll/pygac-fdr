@@ -1,12 +1,16 @@
+# Parameter description:
+# - test_data_url: Where to download test data from
+# - test_data_dir: Where to save downloaded test data
+# - cleanup: Cleanup output after testing (successful or not)
+# - resume: Resume testing with existing output files instead of generating new ones
+# - fast: Run tests with only one file
+# - rtol: Relative tolerance for numerical comparisons
+# - atol: Absolute tolerance for numerical comparisons
+
+test_data_url: https://public.cmsaf.dwd.de/data/sfinkens/pygac-fdr/test_data/
 test_data_dir: /path/to/test/data
-# Where to download test data
-cleanup: False 
-# Cleanup output after testing (successful or not)
-resume: True
-# Resume testing with existing output files instead of generating new ones
+cleanup: True
+resume: False
 fast: False
-# Run tests with only one file
 rtol: 1e-8
-# Relative tolerance for numerical comparisons
 atol: 1e-5
-# Absolute tolerance for numerical comparisons

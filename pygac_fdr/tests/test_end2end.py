@@ -1,3 +1,20 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) 2020 pygac-fdr developers
+#
+# This file is part of pygac-fdr.
+#
+# pygac-fdr is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# pygac-fdr is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# pygac-fdr. If not, see <http://www.gnu.org/licenses/>.
+
 """End-to-end tests for pygac-fdr.
 
 Download test data set, run the entire chain of processing steps (read GAC files, write data
@@ -33,12 +50,18 @@ from pygac_fdr.utils import logging_on, LOGGER_NAME
 LOG = logging.getLogger(LOGGER_NAME)
 
 
+def call_subproc(cmd, cwd='.'):
+    ret = subprocess.call(cmd, cwd=cwd)
+    if ret:
+        raise RuntimeError('Subprocess {} failed with return code {}'.format(cmd, ret))
+
+
 def assert_data_close_and_attrs_identical(a, b, rtol, atol):
     xr.testing.assert_allclose(a, b, rtol=rtol, atol=atol)
     from xarray.core.utils import dict_equiv
     from xarray.core.formatting import diff_attrs_repr
     assert dict_equiv(a.attrs, b.attrs), diff_attrs_repr(a.attrs, b.attrs, 'identical')
-
+        
 
 class EndToEndTestBase(unittest.TestCase):
     @classmethod
@@ -61,28 +84,6 @@ class EndToEndTestBase(unittest.TestCase):
         cls.input_dir = os.path.join(cls.test_data_dir, 'input')
         cls.output_dir = None  # to be set by subclasses
         cls.output_dir_ref = os.path.join(cls.test_data_dir, 'output_ref')
-
-        # Fetch test data from data server
-        cls.fetch_test_data()
-
-    @classmethod
-    def _call_subproc(cls, cmd, cwd='.'):
-        ret = subprocess.call(cmd, cwd=cwd)
-        if ret:
-            raise RuntimeError('Subprocess {} failed with return code {}'.format(cmd, ret))
-
-    @classmethod
-    def fetch_test_data(cls):
-        """Fetch test data (input & reference output) from data server.
-
-        Existing files will only be re-downloaded if the server has a newer version.
-        """
-        LOG.info('Fetching test data')
-        if not os.path.isdir(cls.test_data_dir):
-            os.makedirs(cls.test_data_dir)
-        cmd = ['wget', '--mirror', '--no-host-directories', '--no-parent', '--cut-dirs=4', '--reject="index.html*"',
-               'https://public.cmsaf.dwd.de/data/sfinkens/pygac-fdr/test_data/']
-        cls._call_subproc(cmd, cwd=cls.test_data_dir)
 
     @classmethod
     def _unzip_gac_files(cls, filenames_gz, output_dir):
@@ -125,18 +126,18 @@ class EndToEndTestBase(unittest.TestCase):
                '--output-dir', cls.output_dir,
                '--tle-dir', cls.tle_dir,
                '--verbose', '--log-all'] + gac_files
-        cls._call_subproc(run)
+        call_subproc(run)
         nc_files = sorted(glob.glob(cls.output_dir + '/*.nc'))
 
         if dbfile:
             # Collect & complement metadata
             collect = ['pygac-fdr-mda-collect', '--dbfile', dbfile, '--if-exists', 'replace',
                        '--verbose'] + nc_files
-            cls._call_subproc(collect)
+            call_subproc(collect)
 
             # Update metadata
             update = ['pygac-fdr-mda-update', '--dbfile', dbfile]
-            cls._call_subproc(update)
+            call_subproc(update)
 
         return nc_files
 
