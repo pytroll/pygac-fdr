@@ -31,6 +31,7 @@ until the end of the test suite for some reason.
 """
 
 from cfchecker.cfchecks import CFChecker
+from dateutil.parser import isoparse
 import glob
 import gzip
 import logging
@@ -40,6 +41,8 @@ import shutil
 import subprocess
 import unittest
 import xarray as xr
+from xarray.core.utils import dict_equiv
+from xarray.core.formatting import diff_attrs_repr
 import yaml
 
 from pygac_fdr.metadata import QualityFlags
@@ -57,10 +60,33 @@ def call_subproc(cmd, cwd='.'):
 
 
 class EndToEndTestBase(unittest.TestCase):
-    def assert_attrs_identical(self, a, b):
-        from xarray.core.utils import dict_equiv
-        from xarray.core.formatting import diff_attrs_repr
-        assert dict_equiv(a.attrs, b.attrs), diff_attrs_repr(a.attrs, b.attrs, 'identical')
+    def _assert_time_attrs_close(self, attrs_a, attrs_b):
+        time_attrs = ['start_time', 'end_time']
+        for attr in time_attrs:
+            with self.subTest(attribute=attr):
+                time_a = isoparse(attrs_a.pop(attr))
+                time_b = isoparse(attrs_b.pop(attr))
+                self.assertLess((time_b - time_a).total_seconds(), 0.001)
+
+    def _assert_numerical_attrs_close(self, attrs_a, attrs_b):
+        numerical_attrs = [
+            'geospatial_lon_min',
+            'geospatial_lon_max',
+            'geospatial_lat_min',
+            'geospatial_lat_max',
+        ]
+        for attr in numerical_attrs:
+            with self.subTest(attribute=attr):
+                val_a = attrs_a.pop(attr)
+                val_b = attrs_b.pop(attr)
+                np.testing.assert_allclose(val_a, val_b)
+
+    def assert_attrs_close(self, a, b):
+        attrs_a = a.attrs.copy()
+        attrs_b = b.attrs.copy()
+        self._assert_time_attrs_close(attrs_a, attrs_b)
+        self._assert_numerical_attrs_close(attrs_a, attrs_b)
+        assert dict_equiv(attrs_a, attrs_b), diff_attrs_repr(attrs_a, attrs_b, 'identical')
 
     @classmethod
     def setUpClass(cls):
@@ -176,7 +202,7 @@ class EndToEndTestBase(unittest.TestCase):
                                                       errors='ignore')
 
                         # Compare datasets
-                        self.assert_attrs_identical(ds, ds_ref)
+                        self.assert_attrs_close(ds, ds_ref)
                         try:
                             xr.testing.assert_allclose(ds, ds_ref,
                                                        atol=self.atol, rtol=self.rtol)
