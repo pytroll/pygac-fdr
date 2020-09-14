@@ -23,8 +23,11 @@ install:
 - git clone --depth 1 git://github.com/astropy/ci-helpers.git
 - source ci-helpers/travis/setup_conda.sh
 - pip install -e .
+before_script:
+- if [[ $PYTHON_VERSION == 3.7 ]]; then python pygac_fdr/tests/fetch_data.py; fi
 script:
 - pytest --cov=pygac_fdr pygac_fdr/tests --ignore=pygac_fdr/tests/test_end2end.py
+- if [[ $PYTHON_VERSION == 3.7 ]]; then python pygac_fdr/tests/test_end2end.py; fi
 after_success:
 - if [[ $PYTHON_VERSION == 3.7 ]]; then coveralls; fi
 deploy:
