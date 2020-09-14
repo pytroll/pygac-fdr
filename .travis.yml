@@ -6,28 +6,49 @@ env:
   - MAIN_CMD='python setup.py'
   - CONDA_DEPENDENCIES='netcdf4 hdf5 udunits2 coveralls coverage pytest pytest-cov'
   - PIP_DEPENDENCIES=''
-  - SETUP_XVFB=False
+  - SETUP_XVFB=True
   - EVENT_TYPE='push pull_request'
   - SETUP_CMD='test'
   - CONDA_CHANNELS='conda-forge'
   - CONDA_CHANNEL_PRIORITY="strict"
-matrix:
+  - UNSTABLE_DEPS=False
+  - TRAVIS_EVENT_TYPE=cron  # FIXME
+jobs:
   include:
-  - env: PYTHON_VERSION=3.6
+#  - name: "Python 3.6"
+#    env: PYTHON_VERSION=3.6
+#    os: linux
+  - name: "Python 3.7"
+    env: PYTHON_VERSION=3.7
     os: linux
-  - env: PYTHON_VERSION=3.7
+#  - name: "Python 3.8"
+#    env: PYTHON_VERSION=3.8
+#    os: linux
+  - name: "Python 3.8 (unstable)"
+    env:
+      - PYTHON_VERSION=3.8
+      - UNSTABLE_DEPS=True
     os: linux
-  - env: PYTHON_VERSION=3.8
-    os: linux
+
+  allow_failures:
+  - name: "Python 3.8 (unstable)"
+
 install:
 - git clone --depth 1 git://github.com/astropy/ci-helpers.git
 - source ci-helpers/travis/setup_conda.sh
+- if [ "$UNSTABLE_DEPS" == "True" ]; then
+    pip install
+    git+https://github.com/pydata/xarray
+    git+https://github.com/pydata/pandas
+    git+https://github.com/pytroll/satpy
+    git+https://github.com/pytroll/pygac
+  fi
 - pip install -e .[tests]
 before_script:
-- if [[ $PYTHON_VERSION == 3.7 ]]; then python pygac_fdr/tests/fetch_data.py; fi
+- if [[ $PYTHON_VERSION == 3.7 && TRAVIS_EVENT_TYPE == "cron" ]]; then python pygac_fdr/tests/fetch_data.py; fi
 script:
 - pytest --cov=pygac_fdr pygac_fdr/tests --ignore=pygac_fdr/tests/test_end2end.py
-- if [[ $PYTHON_VERSION == 3.7 ]]; then python pygac_fdr/tests/test_end2end.py; fi
+- if [[ $PYTHON_VERSION == 3.7 && TRAVIS_EVENT_TYPE == "cron" ]]; then python pygac_fdr/tests/test_end2end.py; fi
 after_success:
 - if [[ $PYTHON_VERSION == 3.7 ]]; then coveralls; fi
 deploy:
