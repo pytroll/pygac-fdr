@@ -32,7 +32,6 @@ if __name__ == '__main__':
                 'h5py', 'pygac >=1.3.1', 'satpy >=0.21.0', 'pyyaml', 'trollsift']
     extras_require = {
         "tests": ['cfchecker @ git+https://github.com/cedadev/cf-checker#egg=cfchecker',
-                  # TODO: Replace with cfchecker >= 4.1.0 once released
                   'pytest', 'pytest-cov', 'pytest-testconfig', 'matplotlib']
     }
     README = open('README.md', 'r').read()
