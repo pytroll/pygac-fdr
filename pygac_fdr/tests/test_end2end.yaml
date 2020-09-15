@@ -9,12 +9,12 @@
 # - plot: Plot differences if test fails
 # - trigger_failure: Trigger a test failure by modifying some data
 
-test_data_url: https://public.cmsaf.dwd.de/data/sfinkens/pygac-fdr/test_data/
+test_data_url: https://public.cmsaf.dwd.de/data/perm/pygac-fdr/test_data/
 test_data_dir: test_data/
 cleanup: True
 resume: False
-fast: True
+fast: False
 rtol: 1e-5
 atol: 1e-3
-plot: True
+plot: False
 trigger_failure: False

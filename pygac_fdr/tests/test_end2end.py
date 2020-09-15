@@ -74,7 +74,7 @@ class EndToEndTestBase(unittest.TestCase):
             with self.subTest(attribute=attr):
                 val_a = attrs_a.pop(attr)
                 val_b = attrs_b.pop(attr)
-                np.testing.assert_allclose(val_a, val_b)
+                np.testing.assert_allclose(val_a, val_b, rtol=self.rtol, atol=self.atol)
 
     def assert_attrs_close(self, a, b):
         attrs_a = a.attrs.copy()
