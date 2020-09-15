@@ -3,7 +3,7 @@
 # - test_data_dir: Where to save downloaded test data
 # - cleanup: Cleanup output after testing (successful or not)
 # - resume: Resume testing with existing output files instead of generating new ones
-# - fast: Run tests with only one file
+# - fast: Run tests with only one file. Use with caution if cleanup=False.
 # - rtol: Relative tolerance for numerical comparisons
 # - atol: Absolute tolerance for numerical comparisons
 # - plot: Plot differences if test fails

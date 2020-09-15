@@ -60,6 +60,9 @@ def call_subproc(cmd, cwd='.'):
 
 
 class EndToEndTestBase(unittest.TestCase):
+    tag = None
+    with_metadata = False
+
     def _assert_time_attrs_close(self, attrs_a, attrs_b):
         time_attrs = ['start_time', 'end_time']
         for attr in time_attrs:
@@ -106,9 +109,30 @@ class EndToEndTestBase(unittest.TestCase):
         # Set class attributes
         cls.cfg_file = os.path.join(os.path.dirname(__file__), '../../etc/pygac-fdr.yaml')
         cls.tle_dir = os.path.join(cls.test_data_dir, 'tle')
-        cls.input_dir = os.path.join(cls.test_data_dir, 'input')
-        cls.output_dir = None  # to be set by subclasses
-        cls.output_dir_ref = os.path.join(cls.test_data_dir, 'output_ref')
+        cls.input_dir = os.path.join(cls.test_data_dir, 'input', cls.tag)
+        cls.output_dir = os.path.join(cls.test_data_dir, 'output', cls.tag)
+        cls.output_dir_ref = os.path.join(cls.test_data_dir, 'output_ref', cls.tag)
+
+        # Discover input files and reference output files
+        cls.gac_files_gz, cls.nc_files_ref = cls._discover_files()
+
+        # Process input files
+        dbfile = os.path.join(cls.output_dir, 'test.sqlite3')
+        cls.nc_files = cls._run(cls.gac_files_gz,
+                                dbfile=dbfile if cls.with_metadata else None)
+
+    @classmethod
+    def _discover_files(cls):
+        gac_files_gz = sorted(
+            glob.glob(os.path.join(cls.input_dir, '*.gz'))
+        )
+        nc_files_ref = sorted(
+            glob.glob(os.path.join(cls.output_dir_ref, '*.nc'))
+        )
+        if cls.fast:
+            gac_files_gz = [gac_files_gz[-1]]
+            nc_files_ref = [nc_files_ref[-1]]
+        return gac_files_gz, nc_files_ref
 
     @classmethod
     def _unzip_gac_files(cls, filenames_gz, output_dir):
@@ -274,6 +298,9 @@ class EndToEndTestNormal(EndToEndTestBase):
 
     Also compare metadata against results from CLARA-A3 feedback loop 1.
     """
+
+    tag = 'normal'
+    with_metadata = True
     mda_exp = {
         'NSS.GHRR.NA.D81089.S0054.E0246.B0912021.GC': {
             'nc_file': 'AVHRR-GAC_FDR_1C_N06_19810330T005421Z_19810330T024632Z_R_O_20200101T000000Z_0100.nc',
@@ -390,33 +417,6 @@ class EndToEndTestNormal(EndToEndTestBase):
         },
     }  # from CLARA-A3 Feedback Loop 1
 
-    @classmethod
-    def setUpClass(cls):
-        super(EndToEndTestNormal, cls).setUpClass()
-
-        gac_files_gz = [os.path.join(cls.input_dir, 'normal', fname + '.gz')
-                        for fname in cls.mda_exp.keys()]
-        cls.nc_files_ref = [os.path.join(cls.output_dir_ref, 'normal', mda['nc_file'])
-                            for mda in cls.mda_exp.values()]
-        dbfile = os.path.join(cls.test_data_dir, 'test.sqlite3')
-        if cls.fast:
-            gac_files_gz = [gac_files_gz[-1]]
-            cls.nc_files_ref = [cls.nc_files_ref[-1]]
-
-        # Process "normal" files
-        cls.output_dir = os.path.join(cls.test_data_dir, 'output', 'normal')
-        cls.nc_files = cls._run(gac_files_gz, dbfile)
-
-        # Find corresponding reference output
-        cls.nc_files_ref = []
-        for nc_file in cls.nc_files:
-            with xr.open_dataset(nc_file) as ds:
-                gac_file = ds.attrs['gac_filename']
-                nc_file_ref = os.path.join(cls.output_dir_ref,
-                                           'normal',
-                                           cls.mda_exp[gac_file]['nc_file'])
-                cls.nc_files_ref.append(nc_file_ref)
-
     def test_regression(self):
         self._tst_regression(self.nc_files, self.nc_files_ref)
 
@@ -444,23 +444,9 @@ class EndToEndTestNormal(EndToEndTestBase):
 
 class EndToEndTestCorrupt(EndToEndTestBase):
     """End-to-end test with data that have common defects."""
-    @classmethod
-    def setUpClass(cls):
-        super(EndToEndTestCorrupt, cls).setUpClass()
 
-        gac_files_gz = sorted(
-            glob.glob(os.path.join(cls.input_dir, 'corrupt', '*.gz'))
-        )
-        cls.nc_files_ref = sorted(
-            glob.glob(os.path.join(cls.output_dir_ref, 'corrupt', '*.nc'))
-        )
-        if cls.fast:
-            gac_files_gz = [gac_files_gz[-1]]
-            cls.nc_files_ref = [cls.nc_files_ref[-1]]
-
-        # Process "corrupt" files
-        cls.output_dir = os.path.join(cls.test_data_dir, 'output', 'corrupt')
-        cls.nc_files = cls._run(gac_files_gz)
+    tag = 'corrupt'
+    with_metadata = False
 
     def test_regression(self):
         self._tst_regression(self.nc_files, self.nc_files_ref)
