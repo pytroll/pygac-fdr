@@ -142,9 +142,9 @@ class EndToEndTestBase(unittest.TestCase):
             basename = os.path.splitext(basename_gz)[0]
             filename = os.path.join(output_dir, os.path.basename(basename))
             LOG.info('Decompressing {}'.format(filename_gz))
-            with gzip.open(filename_gz, 'rb') as f_in:
-                with open(filename, 'wb') as f_out:
-                    shutil.copyfileobj(f_in, f_out)
+            with gzip.open(filename_gz, 'rb') as f_in, \
+                 open(filename, 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
             filenames.append(filename)
         return filenames
 
@@ -208,32 +208,30 @@ class EndToEndTestBase(unittest.TestCase):
                          'version_pygac_fdr']
         for nc_file, nc_file_ref in zip(nc_files, nc_files_ref):
             LOG.info('Performing regression test with {}'.format(nc_file))
-            with self.subTest(nc_file=nc_file):
-                with xr.open_dataset(nc_file) as ds:
-                    with xr.open_dataset(nc_file_ref) as ds_ref:
-                        # Remove dynamic attributes
-                        for attr in dynamic_attrs:
-                            ds.attrs.pop(attr)
-                            ds_ref.attrs.pop(attr)
+            with self.subTest(nc_file=nc_file), \
+                 xr.open_dataset(nc_file) as ds, \
+                 xr.open_dataset(nc_file_ref) as ds_ref:
 
-                        # If testing just one file, there is no overlap
-                        if self.fast:
-                            ds = ds.drop_vars(['overlap_free_start',
-                                               'overlap_free_end'],
+                # Remove dynamic attributes
+                for attr in dynamic_attrs:
+                    ds.attrs.pop(attr)
+                    ds_ref.attrs.pop(attr)
+
+                # If testing just one file, there is no overlap
+                if self.fast:
+                    ds = ds.drop_vars(['overlap_free_start', 'overlap_free_end'],
+                                      errors='ignore')
+                    ds_ref = ds_ref.drop_vars(['overlap_free_start', 'overlap_free_end'],
                                               errors='ignore')
-                            ds_ref = ds_ref.drop_vars(['overlap_free_start',
-                                                       'overlap_free_end'],
-                                                      errors='ignore')
 
-                        # Compare datasets
-                        self.assert_attrs_close(ds, ds_ref)
-                        try:
-                            xr.testing.assert_allclose(ds, ds_ref,
-                                                       atol=self.atol, rtol=self.rtol)
-                        except AssertionError:
-                            if self.plot:
-                                self._plot_diffs(ds_ref=ds_ref, ds_tst=ds, file_tst=nc_file)
-                            raise
+                # Compare datasets
+                self.assert_attrs_close(ds, ds_ref)
+                try:
+                    xr.testing.assert_allclose(ds, ds_ref, atol=self.atol, rtol=self.rtol)
+                except AssertionError:
+                    if self.plot:
+                        self._plot_diffs(ds_ref=ds_ref, ds_tst=ds, file_tst=nc_file)
+                    raise
 
     def _plot_diffs(self, ds_ref, ds_tst, file_tst):
         """Plot differences and save figure to output directory."""
