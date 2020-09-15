@@ -36,7 +36,7 @@ import glob
 import gzip
 import logging
 import numpy as np
-import os
+from pathlib import Path
 import shutil
 import subprocess
 import unittest
@@ -96,7 +96,7 @@ class EndToEndTestBase(unittest.TestCase):
         logging_on(logging.DEBUG, for_all=True)
 
         # Read config file
-        with open(os.path.join(os.path.dirname(__file__), 'test_end2end.yaml')) as fh:
+        with open(Path(__file__).parent / 'test_end2end.yaml') as fh:
             config = yaml.safe_load(fh)
         cls.test_data_dir = config['test_data_dir']
         cls.cleanup = config['cleanup']
@@ -105,30 +105,27 @@ class EndToEndTestBase(unittest.TestCase):
         cls.rtol = float(config['rtol'])
         cls.atol = float(config['atol'])
         cls.plot = config['plot']
+        cls.trigger_failure = config['trigger_failure']
 
         # Set class attributes
-        cls.cfg_file = os.path.join(os.path.dirname(__file__), '../../etc/pygac-fdr.yaml')
-        cls.tle_dir = os.path.join(cls.test_data_dir, 'tle')
-        cls.input_dir = os.path.join(cls.test_data_dir, 'input', cls.tag)
-        cls.output_dir = os.path.join(cls.test_data_dir, 'output', cls.tag)
-        cls.output_dir_ref = os.path.join(cls.test_data_dir, 'output_ref', cls.tag)
+        cls.cfg_file = Path(__file__).absolute().parents[2] / 'etc' / 'pygac-fdr.yaml'
+        cls.tle_dir = Path(cls.test_data_dir) / 'tle'
+        cls.input_dir = Path(cls.test_data_dir) / 'input' / cls.tag
+        cls.output_dir = Path(cls.test_data_dir) / 'output' / cls.tag
+        cls.output_dir_ref = Path(cls.test_data_dir) / 'output_ref' / cls.tag
 
         # Discover input files and reference output files
         cls.gac_files_gz, cls.nc_files_ref = cls._discover_files()
 
         # Process input files
-        dbfile = os.path.join(cls.output_dir, 'test.sqlite3')
+        dbfile = Path(cls.output_dir) / 'test.sqlite3'
         cls.nc_files = cls._run(cls.gac_files_gz,
                                 dbfile=dbfile if cls.with_metadata else None)
 
     @classmethod
     def _discover_files(cls):
-        gac_files_gz = sorted(
-            glob.glob(os.path.join(cls.input_dir, '*.gz'))
-        )
-        nc_files_ref = sorted(
-            glob.glob(os.path.join(cls.output_dir_ref, '*.nc'))
-        )
+        gac_files_gz = sorted(Path(cls.input_dir).glob('*.gz'))
+        nc_files_ref = sorted(Path(cls.output_dir_ref).glob('*.nc'))
         if cls.fast:
             gac_files_gz = [gac_files_gz[-1]]
             nc_files_ref = [nc_files_ref[-1]]
@@ -138,9 +135,7 @@ class EndToEndTestBase(unittest.TestCase):
     def _unzip_gac_files(cls, filenames_gz, output_dir):
         filenames = []
         for filename_gz in filenames_gz:
-            basename_gz = os.path.basename(filename_gz)
-            basename = os.path.splitext(basename_gz)[0]
-            filename = os.path.join(output_dir, os.path.basename(basename))
+            filename = Path(output_dir) / filename_gz.stem
             LOG.info('Decompressing {}'.format(filename_gz))
             with gzip.open(filename_gz, 'rb') as f_in, \
                  open(filename, 'wb') as f_out:
@@ -157,13 +152,10 @@ class EndToEndTestBase(unittest.TestCase):
         if cls.resume:
             # Resume testing with existing output files
             LOG.info('Resuming test with existing output files')
-            return sorted(
-                glob.glob(os.path.join(cls.output_dir, '*.nc'))
-            )
+            return sorted(Path(cls.output_dir).glob('*.nc'))
 
         # Prepare output directory
-        if not os.path.isdir(cls.output_dir):
-            os.makedirs(cls.output_dir)
+        Path(cls.output_dir).mkdir(parents=True, exist_ok=True)
         cls._cleanup_output_dir()
 
         # Unzip GAC files
@@ -176,7 +168,7 @@ class EndToEndTestBase(unittest.TestCase):
                '--tle-dir', cls.tle_dir,
                '--verbose', '--log-all'] + gac_files
         call_subproc(run)
-        nc_files = sorted(glob.glob(cls.output_dir + '/*.nc'))
+        nc_files = sorted(Path(cls.output_dir).glob('*.nc'))
 
         if dbfile:
             # Collect & complement metadata
@@ -193,10 +185,9 @@ class EndToEndTestBase(unittest.TestCase):
     @classmethod
     def _cleanup_output_dir(cls):
         if cls.cleanup:
-            for item in os.listdir(cls.output_dir):
-                item = os.path.join(cls.output_dir, item)
-                if os.path.isfile(item):
-                    os.unlink(item)
+            for item in Path(cls.output_dir).iterdir():
+                if item.is_file():
+                    item.unlink()
 
     @classmethod
     def tearDownClass(cls):
@@ -223,6 +214,11 @@ class EndToEndTestBase(unittest.TestCase):
                                       errors='ignore')
                     ds_ref = ds_ref.drop_vars(['overlap_free_start', 'overlap_free_end'],
                                               errors='ignore')
+
+                # Trigger test failure
+                if self.trigger_failure:
+                    ds['latitude'] = ds['latitude'] * 2
+                    ds.attrs['geospatial_lat_min'] = 9999.0
 
                 # Compare datasets
                 self.assert_attrs_close(ds, ds_ref)
@@ -283,11 +279,10 @@ class EndToEndTestBase(unittest.TestCase):
             ax_diff.set_title('Test - Reference', fontsize=10)
             ax_ref.set_xlabel(None)
             ax_tst.set_xlabel(None)
-            plt.suptitle(os.path.basename(file_tst))
+            plt.suptitle(Path(file_tst).name)
 
-            ofile = os.path.join(self.output_dir,
-                                 '{}_{}.png'.format(os.path.basename(file_tst), varname))
-            plt.savefig(ofile, bbox_inches='tight')
+            ofile = '{}_{}.png'.format(Path(file_tst).name, varname)
+            plt.savefig(Path(self.output_dir) / ofile, bbox_inches='tight')
             plt.close('all')
 
 
@@ -433,7 +428,7 @@ class EndToEndTestNormal(EndToEndTestBase):
         checker = CFChecker()
         for nc_file in self.nc_files:
             LOG.info('Checking CF compliance of {}'.format(nc_file))
-            res = checker.checker(nc_file)
+            res = checker.checker(str(nc_file))
             global_err = any([res['global'][cat] for cat in ('ERROR', 'FATAL')])
             var_err = any([(v['ERROR'] or v['FATAL']) for v in res['variables'].values()])
             err = global_err or var_err

@@ -7,12 +7,14 @@
 # - rtol: Relative tolerance for numerical comparisons
 # - atol: Absolute tolerance for numerical comparisons
 # - plot: Plot differences if test fails
+# - trigger_failure: Trigger a test failure by modifying some data
 
 test_data_url: https://public.cmsaf.dwd.de/data/sfinkens/pygac-fdr/test_data/
 test_data_dir: test_data/
 cleanup: True
 resume: False
-fast: False
+fast: True
 rtol: 1e-8
 atol: 1e-5
-plot: False
+plot: True
+trigger_failure: True
