@@ -23,11 +23,12 @@ Existing files will only be re-downloaded if the server has a newer version.
 
 import logging
 import os
+from pathlib import Path
+import subprocess
 from urllib.parse import urlparse
 import yaml
 
 from pygac_fdr.utils import logging_on, LOGGER_NAME
-from pygac_fdr.tests.test_end2end import call_subproc
 
 
 LOG = logging.getLogger(LOGGER_NAME)
@@ -41,11 +42,11 @@ def fetch_test_data(url, target_dir):
     cut_dirs = len(url_p.path.strip('/').split('/'))
     cmd = ['wget', '--no-verbose', '--mirror', '--no-host-directories', '--no-parent', '--cut-dirs',
            str(cut_dirs), '--reject="index.html*"', url]
-    call_subproc(cmd, cwd=target_dir)
+    subprocess.run(cmd, cwd=target_dir, check=True)
 
 
 if __name__ == '__main__':
     logging_on(logging.INFO)
-    with open(os.path.join(os.path.dirname(__file__), 'test_end2end.yaml')) as fh:
+    with open(Path(__file__).parent / 'test_end2end.yaml') as fh:
         config = yaml.safe_load(fh)
     fetch_test_data(config['test_data_url'], config['test_data_dir'])

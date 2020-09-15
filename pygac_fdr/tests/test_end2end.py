@@ -32,7 +32,6 @@ until the end of the test suite for some reason.
 
 from cfchecker.cfchecks import CFChecker
 from dateutil.parser import isoparse
-import glob
 import gzip
 import logging
 import numpy as np
@@ -50,13 +49,6 @@ from pygac_fdr.utils import logging_on, LOGGER_NAME
 
 
 LOG = logging.getLogger(LOGGER_NAME)
-
-
-def call_subproc(cmd, cwd='.'):
-    LOG.info('Calling subprocess {}'.format(cmd))
-    ret = subprocess.call(cmd, cwd=cwd)
-    if ret:
-        raise RuntimeError('Subprocess {} failed with return code {}'.format(cmd, ret))
 
 
 class EndToEndTestBase(unittest.TestCase):
@@ -167,18 +159,18 @@ class EndToEndTestBase(unittest.TestCase):
                '--output-dir', cls.output_dir,
                '--tle-dir', cls.tle_dir,
                '--verbose', '--log-all'] + gac_files
-        call_subproc(run)
+        subprocess.run(run, check=True)
         nc_files = sorted(Path(cls.output_dir).glob('*.nc'))
 
         if dbfile:
             # Collect & complement metadata
             collect = ['pygac-fdr-mda-collect', '--dbfile', dbfile, '--if-exists', 'replace',
                        '--verbose'] + nc_files
-            call_subproc(collect)
+            subprocess.run(collect, check=True)
 
             # Update metadata
             update = ['pygac-fdr-mda-update', '--dbfile', dbfile]
-            call_subproc(update)
+            subprocess.run(update, check=True)
 
         return nc_files
 
