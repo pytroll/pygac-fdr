@@ -13,7 +13,7 @@ test_data_url: https://public.cmsaf.dwd.de/data/perm/pygac-fdr/test_data/
 test_data_dir: test_data/
 cleanup: True
 resume: False
-fast: False
+fast: True
 rtol: 0.01
 atol: 0.01
 plot: False

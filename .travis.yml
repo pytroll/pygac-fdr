@@ -12,7 +12,8 @@ env:
   - CONDA_CHANNELS='conda-forge'
   - CONDA_CHANNEL_PRIORITY="strict"
   - UNSTABLE_DEPS=False
-  - FOO_BAR=cron  # TODO: replace with TRAVIS_EVENT_TYPE
+  - FOO_BAR=cron  # TODO: Replace with TRAVIS_EVENT_TYPE
+  - secure: YQ8bTH+9QE78c0wuVAaIdR6KmXbs96iCCYgPgWaN91SLT0zWvGtlGOdWz3XdscxoOInL0V4pbXFDV0h4Al2v6+bFtEW0wr09PQc6HPEFI8Ew+1yCJIXzxxqVUym1Y6TFWoWMAlNV3ZvWkLr+uHW8rl8OUpd3wuVyW8sOWZWd8broq/iNhayOw3oRysC/AfmmGxysqh5+jbWxNUchfiKPHBoIJgD/kWCthmQBdxSz5ohH1WGho2ly6nquNHICRTEtkMxAhVTzpvbTcfNc33AnNcIbPvDK4S+6lZQ8MNYQxX+I8oqOQNHSZzku42oWhtTBrMjL7C+SGcwFhT0gdTp1Ih5bYA9qaIllr5qmobmyxMAxeKRZYcL2bcIErxozj9sqloYJTKknYZiuIDn9mFTt6snHz4h61zR9o/H/ne3O5Oyx1YyhFB0StsHQQML2zy69h9fuaddigp/lKw8j1+Q4gBOFo09Wa/00FGuQhUax9sOuTk+6mIZsho0vLa33lSs1ykTdGt8/C7ohsiZ1zcB3/H4DNawi3UkmKaDRJ0yTlcm6dSj53cJhmhlpaxO9xW8/tSNl132MkfX8MiL5QuCvzuJz/+dgR0u0e3jmBK6uuPxMSnNH4Rr9S9EIW2LAUQ65UeqsMsoFWrC8IysKJX8aSFknl6QdQJM0J4bGuq8V9IM=
 jobs:
   include:
   - name: "Python 3.7"
@@ -26,10 +27,8 @@ jobs:
   - name: "Python 3.8"
     env: PYTHON_VERSION=3.8
     os: linux
-
   allow_failures:
   - name: "Python 3.7 (unstable)"
-
 install:
 - git clone --depth 1 git://github.com/astropy/ci-helpers.git
 - source ci-helpers/travis/setup_conda.sh
@@ -42,12 +41,21 @@ install:
   fi
 - pip install -e .[tests]
 before_script:
-- if [[ $PYTHON_VERSION == 3.7 && $FOO_BAR == "cron" ]]; then python pygac_fdr/tests/fetch_data.py; fi
+- if [[ $PYTHON_VERSION == 3.7 && $FOO_BAR == "cron" ]]; then
+    python pygac_fdr/tests/fetch_data.py;
+  fi
 script:
 - pytest --cov=pygac_fdr pygac_fdr/tests --ignore=pygac_fdr/tests/test_end2end.py
-- if [[ $PYTHON_VERSION == 3.7 && $FOO_BAR == "cron" ]]; then python pygac_fdr/tests/test_end2end.py; fi
+- if [[ $PYTHON_VERSION == 3.7 && $FOO_BAR == "cron" ]]; then
+    python pygac_fdr/tests/test_end2end.py;
+  fi
 after_success:
 - if [[ $PYTHON_VERSION == 3.7 ]]; then coveralls; fi
+after_failure:
+- if [[ $PYTHON_VERSION == 3.7 && $FOO_BAR == "cron" ]]; then
+    echo $GITHUB_TOKEN | gh auth login --with-token;
+    gh issue create --title "System tests failed" --repo pytroll/pygac-fdr --body "$TRAVIS_JOB_WEB_URL";
+  fi
 deploy:
   - provider: pypi
     user: "__token__"
