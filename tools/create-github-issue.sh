@@ -8,4 +8,4 @@ if [ "$#" -ne 2 ]; then
 fi
 title="$1"
 body="$2"
-curl -u $GITHUB_TOKEN:x-oauth-basic -i -H "Content-Type: application/json" -X POST --data "{\"title\":\"$title\", \"body\":\"$body\"}" https://api.github.com/repos/pytroll/pygac-fdr/issues/
+curl -u $GITHUB_TOKEN:x-oauth-basic -i -H "Content-Type: application/json" -X POST --data "{\"title\":\"$title\", \"body\":\"$body\"}" https://api.github.com/repos/pytroll/pygac-fdr/issues
