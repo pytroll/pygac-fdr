@@ -53,7 +53,7 @@ after_success:
 - if [[ $PYTHON_VERSION == 3.7 ]]; then coveralls; fi
 after_failure:
 - if [[ $PYTHON_VERSION == 3.7 && $FOO_BAR == "cron" ]]; then
-    tools/create-github-issue.sh "System test failed" $TRAVIS_JOB_WEB_URL
+    tools/create-github-issue.sh "System test failed" $TRAVIS_JOB_WEB_URL;
   fi
 deploy:
   - provider: pypi
