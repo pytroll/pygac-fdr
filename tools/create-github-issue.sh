@@ -10,7 +10,7 @@ title="$1"
 body="$2"
 curl \
   -H "Accept: application/vnd.github.v3+json" \
-  -H "Authorization: token $GITHUB_TOKEN" \
+  -H "Authorization: token ${GITHUB_TOKEN}" \
   -X POST \
   --data "{\"title\":\"$title\", \"body\":\"$body\"}" \
   "https://api.github.com/repos/pytroll/pygac-fdr/issues"
