@@ -14,7 +14,7 @@ test_data_dir: test_data/
 cleanup: True
 resume: False
 fast: False
-rtol: 1e-5
-atol: 1e-3
+rtol: 0.01
+atol: 0.01
 plot: False
 trigger_failure: False

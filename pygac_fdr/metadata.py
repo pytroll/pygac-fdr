@@ -203,9 +203,11 @@ class MetadataCollector:
         Returns:
             Longitudes and UTC times of first and second equator crossing, if any, NaN else.
         """
+        lat = ds['latitude'].load()  # load dataset to prevent netCDF4 indexing error
+
         # Use coordinates in the middle of the swath
-        mid_swath = ds['latitude'].shape[1] // 2
-        lat = ds['latitude'].isel(x=mid_swath)
+        mid_swath = lat.shape[1] // 2
+        lat = lat.isel(x=mid_swath)
         lat_shift = lat.shift(y=-1, fill_value=lat.isel(y=-1))
         sign_change = np.sign(lat_shift) != np.sign(lat)
         ascending = lat_shift > lat
