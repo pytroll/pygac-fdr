@@ -42,7 +42,7 @@ install:
 - pip install -e .[tests]
 before_script:
 - if [[ $PYTHON_VERSION == 3.7 && $FOO_BAR == "cron" ]]; then
-    python pygac_fdr/tests/fetch_data.py;
+    # python pygac_fdr/tests/fetch_data.py;
     sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0;
     sudo apt-add-repository -u https://cli.github.com/packages;
     sudo apt install gh;
@@ -56,7 +56,10 @@ after_success:
 - if [[ $PYTHON_VERSION == 3.7 ]]; then coveralls; fi
 after_failure:
 - if [[ $PYTHON_VERSION == 3.7 && $FOO_BAR == "cron" ]]; then
-    echo $GITHUB_TOKEN | gh auth login --hostname github.com --with-token;
+    touch token.txt;
+    chmod 600 token.txt;
+    echo $GITHUB_TOKEN > token.txt;
+    gh auth login --hostname github.com --with-token < token.txt;
     gh issue create --title "System tests failed" --repo pytroll/pygac-fdr --body "$TRAVIS_JOB_WEB_URL";
   fi
 deploy:
