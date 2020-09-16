@@ -40,6 +40,10 @@ install:
     git+https://github.com/pytroll/pygac;
   fi
 - pip install -e .[tests]
+#before_script:
+#- if [[ $PYTHON_VERSION == 3.7 && $FOO_BAR == "cron" ]]; then
+#    python pygac_fdr/tests/fetch_data.py;
+#  fi
 script:
 - pytest --cov=pygac_fdr pygac_fdr/tests --ignore=pygac_fdr/tests/test_end2end.py
 - if [[ $PYTHON_VERSION == 3.7 && $FOO_BAR == "cron" ]]; then
@@ -49,7 +53,7 @@ after_success:
 - if [[ $PYTHON_VERSION == 3.7 ]]; then coveralls; fi
 after_failure:
 - if [[ $PYTHON_VERSION == 3.7 && $FOO_BAR == "cron" ]]; then
-    curl -u $GITHUB_TOKEN:x-oauth-basic -i -H "Content-Type: application/json" -X POST --data '{"title":"'System tests failed'", "body":"'$TRAVIS_JOB_WEB_URL'"}' https://api.github.com/repos/pytroll/pygac-fdr/issues;
+    tools/create-github-issue.sh "System test failed" $TRAVIS_JOB_WEB_URL
   fi
 deploy:
   - provider: pypi
