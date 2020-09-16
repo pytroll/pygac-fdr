@@ -40,6 +40,11 @@ install:
     git+https://github.com/pytroll/pygac;
   fi
 - pip install -e .[tests]
+- if [[ $PYTHON_VERSION == 3.7 && $FOO_BAR == "cron" ]]; then
+    sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0;
+    sudo apt-add-repository -u https://cli.github.com/packages;
+    sudo apt install gh;
+  fi
 before_script:
 - if [[ $PYTHON_VERSION == 3.7 && $FOO_BAR == "cron" ]]; then
     python pygac_fdr/tests/fetch_data.py;
