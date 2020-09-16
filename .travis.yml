@@ -40,14 +40,12 @@ install:
     git+https://github.com/pytroll/pygac;
   fi
 - pip install -e .[tests]
-- if [[ $PYTHON_VERSION == 3.7 && $FOO_BAR == "cron" ]]; then
-    sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0;
-    sudo apt-add-repository -u https://cli.github.com/packages;
-    sudo apt install gh;
-  fi
 before_script:
 - if [[ $PYTHON_VERSION == 3.7 && $FOO_BAR == "cron" ]]; then
     python pygac_fdr/tests/fetch_data.py;
+    sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0;
+    sudo apt-add-repository -u https://cli.github.com/packages;
+    sudo apt install gh;
   fi
 script:
 - pytest --cov=pygac_fdr pygac_fdr/tests --ignore=pygac_fdr/tests/test_end2end.py
@@ -58,7 +56,7 @@ after_success:
 - if [[ $PYTHON_VERSION == 3.7 ]]; then coveralls; fi
 after_failure:
 - if [[ $PYTHON_VERSION == 3.7 && $FOO_BAR == "cron" ]]; then
-    echo $GITHUB_TOKEN | gh auth login --with-token;
+    echo $GITHUB_TOKEN | gh auth login --hostname github.com --with-token;
     gh issue create --title "System tests failed" --repo pytroll/pygac-fdr --body "$TRAVIS_JOB_WEB_URL";
   fi
 deploy:
