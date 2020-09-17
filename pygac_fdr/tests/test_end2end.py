@@ -192,8 +192,8 @@ class EndToEndTestBase(unittest.TestCase):
         for nc_file, nc_file_ref in zip(nc_files, nc_files_ref):
             LOG.info('Performing regression test with {}'.format(nc_file))
             with self.subTest(nc_file=nc_file), \
-                 xr.open_dataset(nc_file) as ds, \
-                 xr.open_dataset(nc_file_ref) as ds_ref:
+                 xr.open_dataset(nc_file, chunks=1024) as ds, \
+                 xr.open_dataset(nc_file_ref, chunks=1024) as ds_ref:
 
                 # Remove dynamic attributes
                 for attr in dynamic_attrs:
