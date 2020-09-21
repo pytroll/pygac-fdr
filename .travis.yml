@@ -16,17 +16,17 @@ env:
   - secure: "M8/z9tjyJkyi5hOGyIRKAt6e/ftoSVY9MAoB9YX83wmGvvy/dOMtlGDddSlCKkaMXnrYfi13i+k2nHv9o0j4wrTeTKJ77jw3OT708Ppu+qI3IRePThYbvGwGL7Fnbrvu2qzNaKWkMUbNRW6+ASj5/31XQxOt0UUEkPCP0TZaycrVB1UKl3tiuS+mFcPxvzlXAUL9O0qTxblC/E7iFQ/8JeO87jhN2wuiEDVbk+ceAo1prbzSDEhiAJQGJ4/+Oc6rOjJuXgAfqAMkMPpVVztApJ4LIX+2Ok04OI9Jvwya1hBaLO7zfAujPwpg1/A/3bIiJQ14FtySZmk8fu2ncju+lH4JJV7QVrXsaDc8alusRBjonQ1m8/MsYtrYncmTmrH4VXd5l0c5sIQcSai47kZfx4ihCePuxRQPXcrqeW1kHMZXQYPvEDs4+eEybAjXebfg+pccxy+p6OQwBLpDEnMMVbL7AX57UWxJTwDuP0JAzq8l8k6eZU7r5cfqhygrWcqpEBeVjQfNu1VVw0VOHfdYKQjurIPNG88+XUQuaofeY4p9TAoP6qac9MlBTl09Rax0nXXUAF2+/SgqAOoGqw8FL5KCueIQc6aeeb3DWoFYWTGn26qVIdEZCPZgvuwh+dpj68dCU293YC/jsCHfbLqBo9PSu++RY/m01KgooS+vTWo="
 jobs:
   include:
-#  - name: "Python 3.7"
-#    env: PYTHON_VERSION=3.7
-#    os: linux
+  - name: "Python 3.7"
+    env: PYTHON_VERSION=3.7
+    os: linux
   - name: "Python 3.7 (unstable)"
     env:
       - PYTHON_VERSION=3.7
       - UNSTABLE_DEPS=True
     os: linux
-#  - name: "Python 3.8"
-#    env: PYTHON_VERSION=3.8
-#    os: linux
+  - name: "Python 3.8"
+    env: PYTHON_VERSION=3.8
+    os: linux
   allow_failures:
   - name: "Python 3.7 (unstable)"
 install:
