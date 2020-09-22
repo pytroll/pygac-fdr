@@ -1,0 +1,20 @@
+# Parameter description:
+# - test_data_url: Where to download test data from
+# - test_data_dir: Where to save downloaded test data
+# - cleanup: Cleanup output after testing (successful or not)
+# - resume: Resume testing with existing output files instead of generating new ones
+# - fast: Run tests with only one file. Use with caution if cleanup=False.
+# - rtol: Relative tolerance for numerical comparisons
+# - atol: Absolute tolerance for numerical comparisons
+# - plot: Plot differences if test fails
+# - trigger_failure: Trigger a test failure by modifying some data
+
+test_data_url: https://public.cmsaf.dwd.de/data/perm/pygac-fdr/test_data/
+test_data_dir: test_data/
+cleanup: True
+resume: False
+fast: False
+rtol: 0.01
+atol: 0.01
+plot: False
+trigger_failure: False

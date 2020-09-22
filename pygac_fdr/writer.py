@@ -380,6 +380,17 @@ class NetcdfWriter:
 
         return encoding
 
+    def _update_coordinates(self, scene):
+        """Update dataset coordinates.
+
+        Setting the relation explicitly enables xr.to_netcdf() to set the proper coordinate
+        attributes.
+        """
+        for ds_name in scene.keys():
+            if scene[ds_name].dims == ('y', 'x'):
+                scene[ds_name].coords['longitude'] = (('y', 'x'), scene['longitude'])
+                scene[ds_name].coords['latitude'] = (('y', 'x'), scene['latitude'])
+
     def _fix_global_attrs(self, filename, global_attrs):
         LOG.info('Fixing global attributes')
         with netCDF4.Dataset(filename, mode='a') as nc:
@@ -415,6 +426,7 @@ class NetcdfWriter:
         self._cleanup_attrs(scene)
         self._set_custom_attrs(scene)
         self._rename_datasets(scene)
+        self._update_coordinates(scene)
         encoding = self._get_encoding(scene)
         LOG.info('Writing calibrated scene to {}'.format(filename))
         scene.save_datasets(writer='cf',

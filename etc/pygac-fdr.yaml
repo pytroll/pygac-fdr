@@ -3,8 +3,8 @@ controls:
     reader_kwargs:
         tle_dir: /data/avhrr_gac/tle
         tle_name: TLE_%(satname)s.txt
-        tle_thresh: 1000
-        calibration_file: /data/avhrr_gac/calibration.json
+        tle_thresh: 7
+        # calibration_file: /data/avhrr_gac/calibration.json
     pytroll_chunk_size: 1024
 output:
     output_dir: /data/avhrr_gac/output/
