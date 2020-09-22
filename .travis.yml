@@ -7,7 +7,7 @@ env:
   - CONDA_DEPENDENCIES='netcdf4 hdf5 udunits2 coveralls coverage pytest pytest-cov'
   - PIP_DEPENDENCIES=''
   - SETUP_XVFB=True
-  - EVENT_TYPE='push pull_request'
+  - EVENT_TYPE='push pull_request cron'
   - SETUP_CMD='test'
   - CONDA_CHANNELS='conda-forge'
   - CONDA_CHANNEL_PRIORITY="strict"
