@@ -1,0 +1,2 @@
+[run]
+    omit = pygac_fdr/tests/*.py
