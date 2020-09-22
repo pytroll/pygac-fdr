@@ -12,7 +12,6 @@ env:
   - CONDA_CHANNELS='conda-forge'
   - CONDA_CHANNEL_PRIORITY="strict"
   - UNSTABLE_DEPS=False
-  - FOO_BAR=cron  # TODO: Replace with TRAVIS_EVENT_TYPE
   - secure: "M8/z9tjyJkyi5hOGyIRKAt6e/ftoSVY9MAoB9YX83wmGvvy/dOMtlGDddSlCKkaMXnrYfi13i+k2nHv9o0j4wrTeTKJ77jw3OT708Ppu+qI3IRePThYbvGwGL7Fnbrvu2qzNaKWkMUbNRW6+ASj5/31XQxOt0UUEkPCP0TZaycrVB1UKl3tiuS+mFcPxvzlXAUL9O0qTxblC/E7iFQ/8JeO87jhN2wuiEDVbk+ceAo1prbzSDEhiAJQGJ4/+Oc6rOjJuXgAfqAMkMPpVVztApJ4LIX+2Ok04OI9Jvwya1hBaLO7zfAujPwpg1/A/3bIiJQ14FtySZmk8fu2ncju+lH4JJV7QVrXsaDc8alusRBjonQ1m8/MsYtrYncmTmrH4VXd5l0c5sIQcSai47kZfx4ihCePuxRQPXcrqeW1kHMZXQYPvEDs4+eEybAjXebfg+pccxy+p6OQwBLpDEnMMVbL7AX57UWxJTwDuP0JAzq8l8k6eZU7r5cfqhygrWcqpEBeVjQfNu1VVw0VOHfdYKQjurIPNG88+XUQuaofeY4p9TAoP6qac9MlBTl09Rax0nXXUAF2+/SgqAOoGqw8FL5KCueIQc6aeeb3DWoFYWTGn26qVIdEZCPZgvuwh+dpj68dCU293YC/jsCHfbLqBo9PSu++RY/m01KgooS+vTWo="
 jobs:
   include:
@@ -41,18 +40,18 @@ install:
   fi
 - pip install -e .[tests]
 before_script:
-- if [[ $PYTHON_VERSION == 3.7 && $FOO_BAR == "cron" ]]; then
+- if [[ $PYTHON_VERSION == 3.7 && $TRAVIS_EVENT_TYPE == "cron" ]]; then
     python pygac_fdr/tests/fetch_data.py;
   fi
 script:
 - pytest --cov=pygac_fdr pygac_fdr/tests --ignore=pygac_fdr/tests/test_end2end.py
-- if [[ $PYTHON_VERSION == 3.7 && $FOO_BAR == "cron" ]]; then
+- if [[ $PYTHON_VERSION == 3.7 && $TRAVIS_EVENT_TYPE == "cron" ]]; then
     python pygac_fdr/tests/test_end2end.py;
   fi
 after_success:
 - if [[ $PYTHON_VERSION == 3.7 ]]; then coveralls; fi
 after_failure:
-- if [[ $PYTHON_VERSION == 3.7 && $FOO_BAR == "cron" ]]; then
+- if [[ $PYTHON_VERSION == 3.7 && $TRAVIS_EVENT_TYPE == "cron" ]]; then
     tools/create-github-issue.sh "System tests on $TRAVIS_JOB_NAME failed" $TRAVIS_JOB_WEB_URL;
   fi
 deploy:
