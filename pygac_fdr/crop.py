@@ -81,6 +81,11 @@ def crop_end(ds, date=None):
     return start_line, end_line
 
 
+def crop_beginning(ds, date=None):
+    # FUTURE
+    raise NotImplementedError
+
+
 def crop(filename, where, date=None):
     """Crop overlap.
 
@@ -97,6 +102,4 @@ def crop(filename, where, date=None):
     with xr.open_dataset(filename) as ds:
         if where == CROP_OVERLAP_END:
             return crop_end(ds, date)
-        else:
-            # FUTURE
-            raise NotImplementedError
+        return crop_beginning(ds, date)
