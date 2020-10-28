@@ -24,10 +24,14 @@ Usage:
 
 $ python test_end2end.py
 
+Or
+
+$ pytest -vs test_end2end.py
+
 The test behaviour can be controlled using the configuration file test_end2end.yaml .
 
-Do not use pytest as this will eat up all your memory, because pytest caches all generated figures
-until the end of the test suite for some reason.
+Do not use pytest in combination with plotting as this might eat up all your memory. For some
+reason pytest caches all generated figures until the end of the test suite.
 """
 
 import gzip
