@@ -76,12 +76,19 @@ class EndToEndTestBase(unittest.TestCase):
                 val_b = attrs_b.pop(attr)
                 np.testing.assert_allclose(val_a, val_b, rtol=self.rtol, atol=self.atol)
 
-    def assert_attrs_close(self, a, b):
-        attrs_a = a.attrs.copy()
-        attrs_b = b.attrs.copy()
+    def assert_global_attrs_close(self, attrs_a, attrs_b):
+        attrs_a = attrs_a.copy()
+        attrs_b = attrs_b.copy()
         self._assert_time_attrs_close(attrs_a, attrs_b)
         self._assert_numerical_attrs_close(attrs_a, attrs_b)
         assert dict_equiv(attrs_a, attrs_b), diff_attrs_repr(attrs_a, attrs_b, 'identical')
+
+    def assert_variable_attrs_equal(self, ds_a, ds_b):
+        # Does not test whether ds_a and ds_b have the same set of variables
+        for var_name in ds_a.variables.keys():
+            attrs_a = ds_a[var_name].attrs
+            attrs_b = ds_b[var_name].attrs
+            assert dict_equiv(attrs_a, attrs_b), diff_attrs_repr(attrs_a, attrs_b, 'identical')
 
     @classmethod
     def setUpClass(cls):
@@ -213,7 +220,8 @@ class EndToEndTestBase(unittest.TestCase):
                     ds.attrs['geospatial_lat_min'] = 9999.0
 
                 # Compare datasets
-                self.assert_attrs_close(ds, ds_ref)
+                self.assert_global_attrs_close(ds.attrs, ds_ref.attrs)
+                self.assert_variable_attrs_equal(ds, ds_ref)
                 try:
                     xr.testing.assert_allclose(ds, ds_ref, atol=self.atol, rtol=self.rtol)
                 except AssertionError:
