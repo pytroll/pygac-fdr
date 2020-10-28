@@ -18,12 +18,13 @@
 
 import argparse
 import logging
-import satpy
-from pygac_fdr.reader import read_gac
-from pygac_fdr.writer import NetcdfWriter
-from pygac_fdr.config import read_config
-from pygac_fdr.utils import logging_on, LOGGER_NAME
 
+import satpy
+
+from pygac_fdr.config import read_config
+from pygac_fdr.reader import read_gac
+from pygac_fdr.utils import LOGGER_NAME, logging_on
+from pygac_fdr.writer import NetcdfWriter
 
 LOG = logging.getLogger(LOGGER_NAME)
 

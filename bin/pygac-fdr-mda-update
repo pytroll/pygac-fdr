@@ -18,9 +18,9 @@
 
 import argparse
 import logging
+
 from pygac_fdr.metadata import MetadataCollector, MetadataUpdater
 from pygac_fdr.utils import logging_on
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Update metadata in level 1c files')

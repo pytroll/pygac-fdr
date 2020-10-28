@@ -18,21 +18,22 @@
 
 """Write AVHRR GAC level 1c data to netCDF."""
 
+import logging
+import os
+import warnings
 from datetime import datetime
 from distutils.version import StrictVersion
-import logging
+from string import Formatter
+
 import netCDF4
 import numpy as np
-import os
-import satpy
-from string import Formatter
-import warnings
-import xarray as xr
 import pygac
-import pygac_fdr
-from pygac_fdr.utils import LOGGER_NAME
-from pygac_fdr.metadata import TIME_COVERAGE
+import satpy
+import xarray as xr
 
+import pygac_fdr
+from pygac_fdr.metadata import TIME_COVERAGE
+from pygac_fdr.utils import LOGGER_NAME
 
 LOG = logging.getLogger(LOGGER_NAME)
 

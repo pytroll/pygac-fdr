@@ -19,6 +19,7 @@
 """Miscellaneous utilities."""
 
 import logging
+
 import satpy.utils
 
 _is_logging_on = False

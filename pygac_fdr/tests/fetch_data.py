@@ -23,13 +23,13 @@ Existing files will only be re-downloaded if the server has a newer version.
 
 import logging
 import os
-from pathlib import Path
 import subprocess
+from pathlib import Path
 from urllib.parse import urlparse
+
 import yaml
 
-from pygac_fdr.utils import logging_on, LOGGER_NAME
-
+from pygac_fdr.utils import LOGGER_NAME, logging_on
 
 LOG = logging.getLogger(LOGGER_NAME)
 

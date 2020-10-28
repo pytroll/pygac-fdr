@@ -18,10 +18,10 @@
 """Print contents of metadata database."""
 
 import argparse
+
 import pandas as pd
 
 from pygac_fdr.metadata import MetadataCollector
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)

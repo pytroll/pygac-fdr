@@ -18,16 +18,16 @@
 
 """Collect and complement L1C metadata."""
 
+import logging
+import sqlite3
 from datetime import datetime
 from enum import IntEnum
-import logging
+
 import netCDF4
 import numpy as np
 import pandas as pd
-import sqlite3
 import xarray as xr
 from xarray.coding.times import encode_cf_datetime
-
 
 LOG = logging.getLogger(__package__)
 

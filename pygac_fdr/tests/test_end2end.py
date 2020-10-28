@@ -30,23 +30,23 @@ Do not use pytest as this will eat up all your memory, because pytest caches all
 until the end of the test suite for some reason.
 """
 
-from cfchecker.cfchecks import CFChecker
-from dateutil.parser import isoparse
 import gzip
 import logging
-import numpy as np
-from pathlib import Path
 import shutil
 import subprocess
 import unittest
+from pathlib import Path
+
+import numpy as np
 import xarray as xr
-from xarray.core.utils import dict_equiv
-from xarray.core.formatting import diff_attrs_repr
 import yaml
+from cfchecker.cfchecks import CFChecker
+from dateutil.parser import isoparse
+from xarray.core.formatting import diff_attrs_repr
+from xarray.core.utils import dict_equiv
 
 from pygac_fdr.metadata import QualityFlags
-from pygac_fdr.utils import logging_on, LOGGER_NAME
-
+from pygac_fdr.utils import LOGGER_NAME, logging_on
 
 LOG = logging.getLogger(LOGGER_NAME)
 

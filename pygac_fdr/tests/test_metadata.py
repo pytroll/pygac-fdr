@@ -16,13 +16,14 @@
 # You should have received a copy of the GNU General Public License along with
 # pygac-fdr. If not, see <http://www.gnu.org/licenses/>.
 
-import numpy as np
-import pandas as pd
 import unittest
 from unittest import mock
+
+import numpy as np
+import pandas as pd
 import xarray as xr
 
-from pygac_fdr.metadata import QualityFlags, MetadataCollector
+from pygac_fdr.metadata import MetadataCollector, QualityFlags
 
 
 def open_dataset_patched(filename):

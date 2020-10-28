@@ -16,9 +16,11 @@
 # You should have received a copy of the GNU General Public License along with
 # pygac-fdr. If not, see <http://www.gnu.org/licenses/>.
 
-import numpy as np
 import unittest
-from pygac_fdr.writer import NetcdfWriter, DEFAULT_ENCODING
+
+import numpy as np
+
+from pygac_fdr.writer import DEFAULT_ENCODING, NetcdfWriter
 
 
 class NetcdfWriterTest(unittest.TestCase):

@@ -19,9 +19,9 @@
 """Read and calibrate AVHRR GAC level 1b data."""
 
 import os
+
 import satpy
 import trollsift
-
 
 BANDS = ['1', '2', '3', '3a', '3b', '4', '5']
 AUX_DATA = ['latitude',
