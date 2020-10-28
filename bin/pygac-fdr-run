@@ -29,26 +29,36 @@ from pygac_fdr.writer import NetcdfWriter
 LOG = logging.getLogger(LOGGER_NAME)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Parse command line arguments
-    parser = argparse.ArgumentParser(description='Read & calibrate AVHRR GAC data and write '
-                                                 'results to netCDF')
-    parser.add_argument('--cfg',
-                        required=True,
-                        type=str,
-                        help='Path to pygac-fdr configuration file.')
-    parser.add_argument('--output-dir',
-                        help='Output directory. Overrides entry in the configuration file.')
-    parser.add_argument('--tle-dir',
-                        help='Directory containing TLE files. Overrides entry in the configuration'
-                             ' file.')
-    parser.add_argument('--debug',
-                        action='store_true',
-                        help='Enable debug mode, i.e. exit on first error. Otherwise continue with '
-                             'next file. Overrides entry in the configuration file.')
-    parser.add_argument('--verbose', action='store_true', help='Increase verbosity')
-    parser.add_argument('--log-all', action='store_true', help='Enable logging for all modules')
-    parser.add_argument('filenames', nargs='+', help='AVHRR GAC level 1b files to be processed')
+    parser = argparse.ArgumentParser(
+        description="Read & calibrate AVHRR GAC data and write " "results to netCDF"
+    )
+    parser.add_argument(
+        "--cfg", required=True, type=str, help="Path to pygac-fdr configuration file."
+    )
+    parser.add_argument(
+        "--output-dir",
+        help="Output directory. Overrides entry in the configuration file.",
+    )
+    parser.add_argument(
+        "--tle-dir",
+        help="Directory containing TLE files. Overrides entry in the configuration"
+        " file.",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug mode, i.e. exit on first error. Otherwise continue with "
+        "next file. Overrides entry in the configuration file.",
+    )
+    parser.add_argument("--verbose", action="store_true", help="Increase verbosity")
+    parser.add_argument(
+        "--log-all", action="store_true", help="Enable logging for all modules"
+    )
+    parser.add_argument(
+        "filenames", nargs="+", help="AVHRR GAC level 1b files to be processed"
+    )
     args = parser.parse_args()
     logging_on(logging.DEBUG if args.verbose else logging.INFO, for_all=args.log_all)
 
@@ -56,26 +66,30 @@ if __name__ == '__main__':
     # line.
     config = read_config(args.cfg)
     if args.output_dir:
-        config['output']['output_dir'] = args.output_dir
+        config["output"]["output_dir"] = args.output_dir
     if args.tle_dir:
-        config['controls']['reader_kwargs']['tle_dir'] = args.tle_dir
+        config["controls"]["reader_kwargs"]["tle_dir"] = args.tle_dir
     if args.debug:
-        config['controls']['debug'] = args.debug
+        config["controls"]["debug"] = args.debug
 
     # Process files
-    satpy.CHUNK_SIZE = config['controls'].get('pytroll_chunk_size', 1024)
+    satpy.CHUNK_SIZE = config["controls"].get("pytroll_chunk_size", 1024)
     for filename in args.filenames:
-        LOG.info('Processing file {}'.format(filename))
+        LOG.info("Processing file {}".format(filename))
         try:
-            scene = read_gac(filename, reader_kwargs=config['controls'].get('reader_kwargs'))
-            writer = NetcdfWriter(global_attrs=config.get('global_attrs'),
-                                  gac_header_attrs=config.get('gac_header_attrs'),
-                                  fname_fmt=config['output'].get('fname_fmt'),
-                                  encoding=config['netcdf'].get('encoding'),
-                                  engine=config['netcdf'].get('engine'),
-                                  debug=config['controls'].get('debug'))
-            writer.write(output_dir=config['output'].get('output_dir'), scene=scene)
+            scene = read_gac(
+                filename, reader_kwargs=config["controls"].get("reader_kwargs")
+            )
+            writer = NetcdfWriter(
+                global_attrs=config.get("global_attrs"),
+                gac_header_attrs=config.get("gac_header_attrs"),
+                fname_fmt=config["output"].get("fname_fmt"),
+                encoding=config["netcdf"].get("encoding"),
+                engine=config["netcdf"].get("engine"),
+                debug=config["controls"].get("debug"),
+            )
+            writer.write(output_dir=config["output"].get("output_dir"), scene=scene)
         except Exception as err:
-            if config['controls']['debug']:
+            if config["controls"]["debug"]:
                 raise
-            LOG.error('Error processing file {}: {}'.format(filename, err))
+            LOG.error("Error processing file {}: {}".format(filename, err))

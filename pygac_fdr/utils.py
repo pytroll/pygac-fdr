@@ -35,12 +35,15 @@ def logging_on(level=logging.WARNING, for_all=False):
     """
     global _is_logging_on
     satpy.utils.logging_off()
-    logger_name = '' if for_all else LOGGER_NAME
+    logger_name = "" if for_all else LOGGER_NAME
     if not _is_logging_on:
         console = logging.StreamHandler()
-        console.setFormatter(logging.Formatter("[%(levelname)s: %(asctime)s :"
-                                               " %(name)s] %(message)s",
-                                               '%Y-%m-%d %H:%M:%S'))
+        console.setFormatter(
+            logging.Formatter(
+                "[%(levelname)s: %(asctime)s :" " %(name)s] %(message)s",
+                "%Y-%m-%d %H:%M:%S",
+            )
+        )
         console.setLevel(level)
         logging.getLogger(logger_name).addHandler(console)
         _is_logging_on = True
@@ -57,5 +60,5 @@ def logging_off(for_all=False):
     Args:
         for_all: If True, turn off logging for all modules (default is this package only).
     """
-    logger_name = '' if for_all else LOGGER_NAME
+    logger_name = "" if for_all else LOGGER_NAME
     logging.getLogger(logger_name).handlers = [logging.NullHandler()]
