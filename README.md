@@ -42,8 +42,8 @@ netCDF metadata inplace:
 pygac-fdr-mda-update --dbfile=test.sqlite3
 ```
 
-Utilities for AVHRR GAC FDR Users
-=================================
+Tips for AVHRR GAC FDR Users
+============================
 
 Checking Global Quality Flag
 ----------------------------
