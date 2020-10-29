@@ -45,6 +45,15 @@ pygac-fdr-mda-update --dbfile=test.sqlite3
 Utilities for AVHRR GAC FDR Users
 =================================
 
+Checking Global Quality Flag
+----------------------------
+
+The global quality flag can be checked from the command line as follows:
+
+```
+ncks -CH -v global_quality_flag -s "%d" myfile.nc
+```
+
 Cropping Overlap
 ----------------
 
