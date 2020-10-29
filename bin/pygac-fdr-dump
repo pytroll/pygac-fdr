@@ -18,24 +18,23 @@
 """Print contents of metadata database."""
 
 import argparse
+
 import pandas as pd
 
 from pygac_fdr.metadata import MetadataCollector
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('dbfile', help='Metadata database')
-    parser.add_argument('-n', help='Maximum number of rows to be printed',
-                        type=int)
+    parser.add_argument("dbfile", help="Metadata database")
+    parser.add_argument("-n", help="Maximum number of rows to be printed", type=int)
     args = parser.parse_args()
 
     collector = MetadataCollector()
     mda = collector.read_sql(args.dbfile)
 
-    pd.set_option('display.max_rows', args.n)
-    pd.set_option('display.max_columns', None)
-    pd.set_option('display.width', None)
-    pd.set_option('display.max_colwidth', 22)
+    pd.set_option("display.max_rows", args.n)
+    pd.set_option("display.max_columns", None)
+    pd.set_option("display.width", None)
+    pd.set_option("display.max_colwidth", 22)
 
     print(mda)
