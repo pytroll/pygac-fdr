@@ -87,14 +87,16 @@ ADDITIONAL_METADATA = [
     },
     {
         "name": "equator_crossing_longitude",
-        "long_name": "Longitude where ascending node crosses the equator (can happen twice per file)",
+        "long_name": "Longitude where ascending node crosses the equator",
+        "comment": "Can happen twice per file",
         "units": "degrees_east",
         "dtype": np.float64,
         "fill_value": FILL_VALUE_FLOAT,
     },
     {
         "name": "equator_crossing_time",
-        "long_name": "UTC time when ascending node crosses the equator (can happen twice per file)",
+        "long_name": "UTC time when ascending node crosses the equator",
+        "comment": "Can happen twice per file",
         "units": "seconds since 1970-01-01 00:00:00",
         "calendar": "standard",
         "dtype": np.float64,

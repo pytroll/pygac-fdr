@@ -463,8 +463,13 @@ class NetcdfWriter:
         """
         for ds_name in scene.keys():
             if scene[ds_name].dims == ("y", "x"):
-                scene[ds_name].coords["longitude"] = (("y", "x"), scene["longitude"])
-                scene[ds_name].coords["latitude"] = (("y", "x"), scene["latitude"])
+                for coord_name in ("latitude", "longitude"):
+                    scene[ds_name].coords[coord_name] = (("y", "x"), scene[coord_name])
+                    scene[ds_name].coords[coord_name].attrs = dict(
+                        (key, val)
+                        for key, val in scene[coord_name].attrs.copy().items()
+                        if not key.startswith("_satpy")
+                    )
 
     def _fix_global_attrs(self, filename, global_attrs):
         LOG.info("Fixing global attributes")
