@@ -17,43 +17,65 @@
 # pygac-fdr. If not, see <http://www.gnu.org/licenses/>.
 
 import os
+
 from setuptools import find_packages, setup
+
 try:
     # HACK: https://github.com/pypa/setuptools_scm/issues/190#issuecomment-351181286
     # Stop setuptools_scm from including all repository files
     import setuptools_scm.integration
+
     setuptools_scm.integration.find_files = lambda _: []
 except ImportError:
     pass
 
 
-if __name__ == '__main__':
-    requires = ['setuptools_scm', 'numpy', 'xarray >=0.15.1', 'pandas >=1.0.3', 'netCDF4',
-                'h5py', 'pygac >=1.3.1', 'satpy >=0.21.0', 'pyyaml', 'trollsift']
+if __name__ == "__main__":
+    requires = [
+        "setuptools_scm",
+        "numpy",
+        "xarray >=0.15.1",
+        "pandas >=1.0.3",
+        "netCDF4",
+        "h5py",
+        "pygac >=1.3.1",
+        "satpy >=0.21.0",
+        "pyyaml",
+        "trollsift",
+    ]
     extras_require = {
-        "tests": ['cfchecker @ git+https://github.com/cedadev/cf-checker#egg=cfchecker',
-                  'pytest', 'pytest-cov', 'pytest-testconfig', 'matplotlib']
+        "tests": [
+            "cfchecker @ git+https://github.com/cedadev/cf-checker#egg=cfchecker",
+            "pytest",
+            "pytest-cov",
+            "pytest-testconfig",
+            "matplotlib",
+        ],
+        "dev": ["pre-commit"],
     }
-    README = open('README.md', 'r').read()
-    setup(name='pygac-fdr',
-          description='Python package for creating a Fundamental Data Record (FDR) of AVHRR GAC '
-                      'data using pygac',
-          long_description=README,
-          long_description_content_type='text/markdown',
-          classifiers=["Development Status :: 3 - Alpha",
-                       "Intended Audience :: Science/Research",
-                       "License :: OSI Approved :: GNU General Public License v3 " +
-                       "or later (GPLv3+)",
-                       "Operating System :: OS Independent",
-                       "Programming Language :: Python",
-                       "Topic :: Scientific/Engineering"],
-          author='The Pytroll Team',
-          author_email='pytroll@googlegroups.com',
-          url="https://github.com/pytroll/pygac-fdr",
-          packages=find_packages(),
-          scripts=[os.path.join('bin', item) for item in os.listdir('bin')],
-          use_scm_version=True,
-          install_requires=requires,
-          extras_require=extras_require,
-          python_requires='>=3.6',
-          )
+    README = open("README.md", "r").read()
+    setup(
+        name="pygac-fdr",
+        description="Python package for creating a Fundamental Data Record (FDR) of AVHRR GAC "
+        "data using pygac",
+        long_description=README,
+        long_description_content_type="text/markdown",
+        classifiers=[
+            "Development Status :: 3 - Alpha",
+            "Intended Audience :: Science/Research",
+            "License :: OSI Approved :: GNU General Public License v3 "
+            + "or later (GPLv3+)",
+            "Operating System :: OS Independent",
+            "Programming Language :: Python",
+            "Topic :: Scientific/Engineering",
+        ],
+        author="The Pytroll Team",
+        author_email="pytroll@googlegroups.com",
+        url="https://github.com/pytroll/pygac-fdr",
+        packages=find_packages(),
+        scripts=[os.path.join("bin", item) for item in os.listdir("bin")],
+        use_scm_version=True,
+        install_requires=requires,
+        extras_require=extras_require,
+        python_requires=">=3.6",
+    )
