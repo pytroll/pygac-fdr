@@ -34,10 +34,47 @@ complement metadata of the generated netCDF files:
 pygac-fdr-mda-collect --dbfile=test.sqlite3 /data/avhrr_gac/output/*
 ```
 
-This might take some time, so the results are saved into a database. You can specify files from 
+This might take some time, so the results are saved into a database. You can specify files from
 multiple platforms; the metadata are analyzed for each platform separately. Finally, update the
 netCDF metadata inplace:
 
 ```
 pygac-fdr-mda-update --dbfile=test.sqlite3
 ```
+
+Tips for AVHRR GAC FDR Users
+============================
+
+Checking Global Quality Flag
+----------------------------
+
+The global quality flag can be checked from the command line as follows:
+
+```
+ncks -CH -v global_quality_flag -s "%d" myfile.nc
+```
+
+Cropping Overlap
+----------------
+
+Due to the data reception mechanism consecutive AVHRR GAC files often partly contain the same information. This is what
+we call overlap. For example some scanlines in the end of file A also occur in the beginning of file B. The
+`overlap_free_start` and `overlap_free_end` attributes in `pygac-fdr` output files indicate that overlap. There are two
+ways to remove it:
+
+- Cut overlap with subsequent file: Select scanlines `0:overlap_free_end`
+- Cut overlap with preceding file: Select scanlines `overlap_free_start:-1`
+
+If, in addition, users want to create daily composites, a file containing observations from two days has to be used
+twice: Once only the part before UTC 00:00, and once only the part after UTC 00:00. Cropping overlap and day together
+is a little bit more complex, because the overlap might cover UTC 00:00. That is why the `pygac-fdr-crop` utility is
+provided:
+
+```
+$ pygac-fdr-crop AVHRR-GAC_FDR_1C_N06_19810330T225108Z_19810331T003506Z_...nc --date 19810330
+0 8260
+$ pygac-fdr-crop AVHRR-GAC_FDR_1C_N06_19810330T225108Z_19810331T003506Z_...nc --date 19810331
+8261 12472
+```
+
+The returned numbers are start- and end-scanline (0-based).
