@@ -19,9 +19,9 @@
 
 import argparse
 import logging
-from pygac_fdr.metadata import MetadataCollector
-from pygac_fdr.utils import logging_on, LOGGER_NAME
 
+from pygac_fdr.metadata import MetadataCollector
+from pygac_fdr.utils import LOGGER_NAME, logging_on
 
 LOG = logging.getLogger(LOGGER_NAME)
 
@@ -30,15 +30,21 @@ tooltip: %(prog)s --dbfile example.db @example_filenames.txt;
 for reading a long list of filenames from an arguments file.
 """
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     fromfile_prefix_chars='@',
-                                     epilog=tooltip)
-    parser.add_argument('--dbfile', required=True, type=str, help='Metadata database to be written')
-    parser.add_argument('--if-exists', choices=('append', 'fail', 'replace'), default='fail',
-                        help='What to do if database table already exists')
-    parser.add_argument('filenames', nargs='+', help='Level 1c files to be analyzed')
-    parser.add_argument('--verbose', action='store_true', help='Increase verbosity')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description=__doc__, fromfile_prefix_chars="@", epilog=tooltip
+    )
+    parser.add_argument(
+        "--dbfile", required=True, type=str, help="Metadata database to be written"
+    )
+    parser.add_argument(
+        "--if-exists",
+        choices=("append", "fail", "replace"),
+        default="fail",
+        help="What to do if database table already exists",
+    )
+    parser.add_argument("filenames", nargs="+", help="Level 1c files to be analyzed")
+    parser.add_argument("--verbose", action="store_true", help="Increase verbosity")
     args = parser.parse_args()
     logging_on(logging.DEBUG if args.verbose else logging.INFO)
 
