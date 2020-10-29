@@ -35,8 +35,16 @@ pygac-fdr-mda-collect --dbfile=test.sqlite3 /data/avhrr_gac/output/*
 ```
 
 This might take some time, so the results are saved into a database. You can specify files from
-multiple platforms; the metadata are analyzed for each platform separately. Finally, update the
-netCDF metadata inplace:
+multiple platforms; the metadata are analyzed for each platform separately. With a large number
+of files you might run into limitations on the size of the command line argument ("Argument list
+too long"). In this case use the following command to read the list of filenames from a file
+(one per line):
+
+```
+pygac-fdr-mda-collect --dbfile=test.sqlite3 @myfiles.txt
+```
+
+Finally, update the netCDF metadata inplace:
 
 ```
 pygac-fdr-mda-update --dbfile=test.sqlite3
