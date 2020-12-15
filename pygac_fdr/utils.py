@@ -104,9 +104,10 @@ class TarFileSystem(fsspec.AbstractFileSystem):
 
     def _get_depth(self, path):
         if path:
-            return 1 + path.count('/')
+            depth = 1 + path.count('/')
         else:
-            return 0
+            depth = 0
+        return depth
 
     def ls(self, path, detail=True, **kwargs):
         """List objects at path."""
