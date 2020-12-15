@@ -19,9 +19,7 @@
 """Miscellaneous utilities."""
 
 import datetime
-import fnmatch
 import logging
-import re
 import tarfile
 
 import fsspec
@@ -74,7 +72,7 @@ class TarFileSystem(fsspec.AbstractFileSystem):
     """Read contents of TAR archive as a file-system."""
     root_marker = ""
     max_depth = 20
-    
+
     def __init__(self, tarball):
         super().__init__()
         self.tarball = tarball
@@ -117,7 +115,7 @@ class TarFileSystem(fsspec.AbstractFileSystem):
             result = [
                 self._get_info(tarinfo)
                 for tarinfo in self.tar.getmembers()
-                if (tarinfo.name.startswith(path) 
+                if (tarinfo.name.startswith(path)
                     and self._get_depth(tarinfo.name) == depth)
             ]
             result.sort(key=lambda item: item['name'])
