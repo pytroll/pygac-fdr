@@ -1,7 +1,6 @@
 import inspect
 import logging
 import multiprocessing
-import pathlib
 
 import netCDF4
 import numpy as np
@@ -34,7 +33,7 @@ class StatsCollector:
     @staticmethod
     def collect_stats(filename):
         """Collect statistics from a given level 1c file."""
-        LOG.info(f"Collect statistics from {filename}")
+        LOG.info("Collect statistics from %s", filename)
         with FileStatsExtractor(filename) as file_stats:
             result = file_stats.extract()
         return result
@@ -73,7 +72,7 @@ class FileStatsExtractor:
         self._dataset = netCDF4.Dataset(filename)
         self._data = {}
         self._attributes = {}
-        
+
     def __getitem__(self, key):
         if key not in self._data:
             self._data[key] = self._dataset[key][:].filled(np.nan)
@@ -101,7 +100,7 @@ class FileStatsExtractor:
 
     def load_channels(self, flatten=False):
         """Load the channel data.
-            Note: It will always return six channels. A single channel 3 will be 
+            Note: It will always return six channels. A single channel 3 will be
                 called channel 3b and channel 3a will be filled with NaNs
         """
         channels = self.channels + ['brightness_temperature_channel_3']
@@ -126,11 +125,11 @@ class FileStatsExtractor:
         for _name, method in inspect.getmembers(self.__class__, predicate=inspect.isfunction):
             if _name.startswith(self.prefix):
                 name = _name[len(self.prefix):]
-                LOG.debug(f"Extract {name} from {self.filename}.")
+                LOG.debug("Extract %s from %s.", name, self.filename)
                 try:
                     result[name] = method(self)
-                except Exception:
-                    LOG.exception(f'Could not extract {name} from {self.filename}!')
+                except:
+                    LOG.exception('Could not extract %s from %s!', name, self.filename)
         return result
 
     def extract_hovmoeller(self):
@@ -154,7 +153,7 @@ class FileStatsExtractor:
         zones = pd.Series(['day', 'night', 'twilight'], name='zone')
         data['day'] = data['solar_zenith_angle'] < 90
         data['night'] = data['solar_zenith_angle'] >= 90
-        data['twilight'] = ((80 <= data['solar_zenith_angle']) & (data['solar_zenith_angle'] < 90))
+        data['twilight'] = ((data['solar_zenith_angle'] >= 80) & (data['solar_zenith_angle'] < 90))
         # add more interessting quantities
         data['diff_ch3bch5'] = data['brightness_temperature_channel_3b'] - data['brightness_temperature_channel_5']
         data['diff_ch4ch5'] = data['brightness_temperature_channel_4'] - data['brightness_temperature_channel_5']
