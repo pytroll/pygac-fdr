@@ -128,7 +128,8 @@ class FileStatsExtractor:
                 LOG.debug("Extract %s from %s.", name, self.filename)
                 try:
                     result[name] = method(self)
-                except:
+                except (RuntimeError, LookupError, ArithmeticError,
+                        OSError, IOError, ValueError, TypeError):
                     LOG.exception('Could not extract %s from %s!', name, self.filename)
         return result
 
