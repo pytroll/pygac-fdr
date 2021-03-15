@@ -35,6 +35,7 @@ LOG = logging.getLogger(__package__)
 TIME_COVERAGE = {
     "METOP-A": (datetime(2007, 6, 28, 23, 14), None),
     "METOP-B": (datetime(2013, 1, 1, 1, 1), None),
+    "METOP-C": (datetime(2018, 11, 7, 16, 28), None),
     "NOAA-6": (datetime(1980, 1, 1, 0, 0), datetime(1982, 8, 3, 0, 39)),
     "NOAA-7": (datetime(1981, 8, 24, 0, 13), datetime(1985, 2, 1, 22, 21)),
     "NOAA-8": (datetime(1983, 5, 4, 19, 9), datetime(1985, 10, 14, 3, 26)),
