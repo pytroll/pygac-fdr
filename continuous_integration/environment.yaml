@@ -1,0 +1,21 @@
+name: test-environment
+channels:
+  - conda-forge
+dependencies:
+  - udunits2
+  - pip
+  - setuptools_scm
+  - numpy
+  - pandas
+  - xarray
+  - netcdf4
+  - h5py
+  - satpy
+  - pyyaml
+  - pytest
+  - pytest-cov
+  - pip:
+    - pygac
+    - trollsift
+    - pytest-testconfig
+    - cfchecker @ git+https://github.com/cedadev/cf-checker#egg=cfchecker
