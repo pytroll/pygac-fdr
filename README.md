@@ -1,8 +1,9 @@
 # pygac-fdr
 Python package for creating a Fundamental Data Record (FDR) of AVHRR GAC data using pygac
 
-[![Build](https://travis-ci.com/pytroll/pygac-fdr.svg?branch=main)](https://travis-ci.com/github/pytroll/pygac-fdr?branch=main)
-[![Coverage Status](https://coveralls.io/repos/github/pytroll/pygac-fdr/badge.svg?branch=main)](https://coveralls.io/github/pytroll/pygac-fdr?branch=main)
+
+[![Build](https://github.com/pytroll/pygac-fdr/actions/workflows/ci.yaml/badge.svg)](https://github.com/pytroll/pygac-fdr/actions/workflows/ci.yaml)
+[![Coverage](https://codecov.io/gh/pytroll/pygac-fdr/branch/master/graph/badge.svg?token=LC55GL9GXN)](https://codecov.io/gh/pytroll/pygac-fdr)
 [![PyPI version](https://badge.fury.io/py/pygac-fdr.svg)](https://badge.fury.io/py/pygac-fdr)
 
 Installation
