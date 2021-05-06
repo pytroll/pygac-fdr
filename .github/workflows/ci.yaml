@@ -32,7 +32,7 @@ jobs:
       - name: Install pygac-fdr
         shell: bash -l {0}
         run: |
-          pip install -e --no-deps .
+          pip install --no-deps -e  .
 
       - name: Run unit tests
         shell: bash -l {0}
