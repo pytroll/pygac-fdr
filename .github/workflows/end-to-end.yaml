@@ -37,7 +37,7 @@ jobs:
           pip install --no-deps -e  .
 
       - name: Fetch test data
-        shell: bash -l {}
+        shell: bash -l {0}
         run: |
           python pygac_fdr/tests/fetch_data.py
 
