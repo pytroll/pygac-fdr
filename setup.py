@@ -39,13 +39,14 @@ if __name__ == "__main__":
         "netCDF4",
         "h5py",
         "pygac >=1.3.1",
-        "satpy >=0.21.0",
+        "satpy >=0.25.0",
         "pyyaml",
         "trollsift",
+        "fsspec",
     ]
     extras_require = {
         "tests": [
-            "cfchecker @ git+https://github.com/cedadev/cf-checker#egg=cfchecker",
+            "cfchecker >=4.1.0",
             "pytest",
             "pytest-cov",
             "pytest-testconfig",
