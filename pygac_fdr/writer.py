@@ -344,7 +344,10 @@ class NetcdfWriter:
         # channel)
         ch4 = scene["4"]
         for attr in self.shared_attrs:
-            global_attrs[attr] = ch4.attrs[attr]
+            try:
+                global_attrs[attr] = ch4.attrs[attr]
+            except KeyError:
+                pass
 
         # Set some dynamic attributes
         start_time, end_time = self._get_temp_cov(scene)
