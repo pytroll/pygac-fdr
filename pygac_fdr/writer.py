@@ -464,7 +464,7 @@ class NetcdfWriter:
         for ds_name in scene.keys():
             if scene[ds_name].dims == ("y", "x"):
                 for coord_name in ("latitude", "longitude"):
-                    scene[ds_name].coords[coord_name] = (("y", "x"), scene[coord_name])
+                    scene[ds_name].coords[coord_name] = (("y", "x"), scene[coord_name].data)
                     scene[ds_name].coords[coord_name].attrs = dict(
                         (key, val)
                         for key, val in scene[coord_name].attrs.copy().items()
