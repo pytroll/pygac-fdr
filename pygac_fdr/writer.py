@@ -344,7 +344,10 @@ class NetcdfWriter:
         # channel)
         ch4 = scene["4"]
         for attr in self.shared_attrs:
-            global_attrs[attr] = ch4.attrs[attr]
+            try:
+                global_attrs[attr] = ch4.attrs[attr]
+            except KeyError:
+                pass
 
         # Set some dynamic attributes
         start_time, end_time = self._get_temp_cov(scene)
@@ -464,7 +467,7 @@ class NetcdfWriter:
         for ds_name in scene.keys():
             if scene[ds_name].dims == ("y", "x"):
                 for coord_name in ("latitude", "longitude"):
-                    scene[ds_name].coords[coord_name] = (("y", "x"), scene[coord_name])
+                    scene[ds_name].coords[coord_name] = (("y", "x"), scene[coord_name].data)
                     scene[ds_name].coords[coord_name].attrs = dict(
                         (key, val)
                         for key, val in scene[coord_name].attrs.copy().items()
