@@ -247,8 +247,6 @@ class EndToEndTestBase(unittest.TestCase):
                     ds.attrs["geospatial_lat_min"] = 9999.0
 
                 # Compare datasets
-                self.assert_global_attrs_close(ds.attrs, ds_ref.attrs)
-                self.assert_variable_attrs_equal(ds, ds_ref)
                 try:
                     xr.testing.assert_allclose(
                         ds, ds_ref, atol=self.atol, rtol=self.rtol
@@ -257,6 +255,8 @@ class EndToEndTestBase(unittest.TestCase):
                     if self.plot:
                         self._plot_diffs(ds_ref=ds_ref, ds_tst=ds, file_tst=nc_file)
                     raise
+                self.assert_global_attrs_close(ds.attrs, ds_ref.attrs)
+                self.assert_variable_attrs_equal(ds, ds_ref)
 
     def _plot_diffs(self, ds_ref, ds_tst, file_tst):
         """Plot differences and save figure to output directory."""
@@ -328,114 +328,78 @@ class EndToEndTestNormal(EndToEndTestBase):
     with_metadata = True
     mda_exp = {
         "NSS.GHRR.NA.D81089.S0054.E0246.B0912021.GC": {
-            "nc_file": "AVHRR-GAC_FDR_1C_N06_19810330T005421Z_19810330T024632Z_R_O_20200101T000000Z_0100.nc",
             "midnight_line": np.nan,
             "overlap_free_end": 12995,
             "global_quality_flag": QualityFlags.OK,
         },
         "NSS.GHRR.NA.D81089.S0242.E0427.B0912122.GC": {
-            "nc_file": "AVHRR-GAC_FDR_1C_N06_19810330T024239Z_19810330T042759Z_R_O_20200101T000000Z_0100.nc",
             "midnight_line": np.nan,
             "overlap_free_end": 12157,
             "global_quality_flag": QualityFlags.OK,
         },
         "NSS.GHRR.NA.D81089.S0423.E0609.B0912223.GC": {
-            "nc_file": "AVHRR-GAC_FDR_1C_N06_19810330T042358Z_19810330T060903Z_R_O_20200101T000000Z_0100.nc",
             "midnight_line": np.nan,
-            "overlap_free_end": 12100,
-            # 12602 (=along_track-1) in CLARA, but that's because the next file was skipped
-            # for some reason
-            "global_quality_flag": QualityFlags.OK,
-        },
-        "NSS.GHRR.NA.D81089.S0604.E0758.B0912324.WI": {
-            "nc_file": "AVHRR-GAC_FDR_1C_N06_19810330T060453Z_19810330T075842Z_R_O_20200101T000000Z_0100.nc",
-            "midnight_line": np.nan,
-            "overlap_free_end": 13020,  # Skipped in CLARA
+            "overlap_free_end": 12603,
             "global_quality_flag": QualityFlags.OK,
         },
         "NSS.GHRR.NA.D81089.S0753.E0947.B0912425.WI": {
-            "nc_file": "AVHRR-GAC_FDR_1C_N06_19810330T075339Z_19810330T094742Z_R_O_20200101T000000Z_0100.nc",
             "midnight_line": np.nan,
             "overlap_free_end": 13053,
-            # 13618 (=along_track-1) in CLARA, but that's because only the next file
-            # (redundant in this case) is taken into account. It is not taken into
-            # account that there might be overlap with the file after that.
             "global_quality_flag": QualityFlags.OK,
         },
         "NSS.GHRR.NA.D81089.S0943.E1058.B0912525.WI": {
-            "nc_file": "AVHRR-GAC_FDR_1C_N06_19810330T094300Z_19810330T105846Z_R_O_20200101T000000Z_0100.nc",
             "midnight_line": np.nan,
-            "overlap_free_end": np.nan,
-            "global_quality_flag": QualityFlags.REDUNDANT,
-        },
-        "NSS.GHRR.NA.D81089.S0943.E1136.B0912526.WI": {
-            "nc_file": "AVHRR-GAC_FDR_1C_N06_19810330T094300Z_19810330T113615Z_R_O_20200101T000000Z_0100.nc",
-            "midnight_line": np.nan,
-            "overlap_free_end": 12989,  # Skipped in CLARA
+            "overlap_free_end": 9043,
             "global_quality_flag": QualityFlags.OK,
         },
         "NSS.GHRR.NA.D81089.S1102.E1136.B0912626.WI": {
-            "nc_file": "AVHRR-GAC_FDR_1C_N06_19810330T110243Z_19810330T113615Z_R_O_20200101T000000Z_0100.nc",
             "midnight_line": np.nan,
-            "overlap_free_end": np.nan,
-            "global_quality_flag": QualityFlags.REDUNDANT,
+            "overlap_free_end": 3408,
+            "global_quality_flag": QualityFlags.OK,
         },
         "NSS.GHRR.NA.D81089.S1131.E1205.B0912626.WI": {
-            "nc_file": "AVHRR-GAC_FDR_1C_N06_19810330T113119Z_19810330T120530Z_R_O_20200101T000000Z_0100.nc",
             "midnight_line": np.nan,
-            "overlap_free_end": 3222,  # == along_track - 1
-            # 3232 (== along_track - 1) in CLARA. The file is just a bit longer there
-            # (+4 seconds, 3233 lines. Not sure why...
+            "overlap_free_end": 3232,
             "global_quality_flag": QualityFlags.OK,
         },
         "NSS.GHRR.NA.D81089.S1221.E1315.B0912627.WI": {
-            "nc_file": "AVHRR-GAC_FDR_1C_N06_19810330T122303Z_19810330T131503Z_R_O_20200101T000000Z_0100.nc",
             "midnight_line": np.nan,
-            "overlap_free_end": 6198,  # == along_track -1
-            # 6193 (== along_track - 1) in CLARA. The file is just a bit shorter there
-            # (-1.5 seconds, 6194 lines in total). Not sure why...
+            "overlap_free_end": 6194,
             "global_quality_flag": QualityFlags.OK,
         },
         "NSS.GHRR.NA.D81089.S1329.E1459.B0912728.WI": {
-            "nc_file": "AVHRR-GAC_FDR_1C_N06_19810330T132910Z_19810330T145933Z_R_O_20200101T000000Z_0100.nc",
             "midnight_line": np.nan,
             "overlap_free_end": 10770,
             "global_quality_flag": QualityFlags.OK,
         },
         "NSS.GHRR.NA.D81089.S1459.E1631.B0912829.GC": {
-            "nc_file": "AVHRR-GAC_FDR_1C_N06_19810330T145914Z_19810330T163142Z_R_O_20200101T000000Z_0100.nc",
             "midnight_line": np.nan,
             "overlap_free_end": 10489,
             "global_quality_flag": QualityFlags.OK,
         },
         "NSS.GHRR.NA.D81089.S1626.E1812.B0912930.GC": {
-            "nc_file": "AVHRR-GAC_FDR_1C_N06_19810330T162639Z_19810330T181201Z_R_O_20200101T000000Z_0100.nc",
             "midnight_line": np.nan,
             "overlap_free_end": 12057,
             "global_quality_flag": QualityFlags.OK,
         },
         "NSS.GHRR.NA.D81089.S1807.E1951.B0913031.GC": {
-            "nc_file": "AVHRR-GAC_FDR_1C_N06_19810330T180708Z_19810330T195132Z_R_O_20200101T000000Z_0100.nc",
             "midnight_line": np.nan,
             "overlap_free_end": 12011,
             "global_quality_flag": QualityFlags.OK,
         },
         "NSS.GHRR.NA.D81089.S1947.E2131.B0913132.GC": {
-            "nc_file": "AVHRR-GAC_FDR_1C_N06_19810330T194718Z_19810330T213158Z_R_O_20200101T000000Z_0100.nc",
             "midnight_line": np.nan,
             "overlap_free_end": 11955,
             "global_quality_flag": QualityFlags.OK,
         },
         "NSS.GHRR.NA.D81089.S2126.E2256.B0913233.WI": {
-            "nc_file": "AVHRR-GAC_FDR_1C_N06_19810330T212656Z_19810330T225612Z_R_O_20200101T000000Z_0100.nc",
             "midnight_line": np.nan,
             "overlap_free_end": 10057,
             "global_quality_flag": QualityFlags.OK,
         },
         "NSS.GHRR.NA.D81089.S2251.E0035.B0913334.WI": {
-            "nc_file": "AVHRR-GAC_FDR_1C_N06_19810330T225108Z_19810331T003506Z_R_O_20200101T000000Z_0100.nc",
             "midnight_line": 8260,
-            "overlap_free_end": 12472,
+            "overlap_free_end": 12473,
             # This is the last file here, therefore overlap_free_end == along_track - 1.
             # In CLARA there is overlap with the next file, which is why they have 12101.
             "global_quality_flag": QualityFlags.OK,
@@ -451,7 +415,6 @@ class EndToEndTestNormal(EndToEndTestBase):
             with xr.open_dataset(nc_file) as ds:
                 gac_file = ds.attrs["gac_filename"]
                 mda_exp = self.mda_exp[gac_file].copy()
-                mda_exp.pop("nc_file")
                 for var_name, exp in mda_exp.items():
                     np.testing.assert_equal(ds[var_name].values, exp)
 
