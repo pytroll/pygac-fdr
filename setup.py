@@ -62,7 +62,7 @@ if __name__ == "__main__":
         long_description=README,
         long_description_content_type="text/markdown",
         classifiers=[
-            "Development Status :: 3 - Alpha",
+            "Development Status :: 4 - Beta",
             "Intended Audience :: Science/Research",
             "License :: OSI Approved :: GNU General Public License v3 "
             + "or later (GPLv3+)",
@@ -75,7 +75,6 @@ if __name__ == "__main__":
         url="https://github.com/pytroll/pygac-fdr",
         packages=find_packages(),
         scripts=[os.path.join("bin", item) for item in os.listdir("bin")],
-        use_scm_version=True,
         install_requires=requires,
         extras_require=extras_require,
         python_requires=">=3.6",

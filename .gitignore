@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# setuptools_scm files
+# this should be generated automatically when installed
+pygac_fdr/version.py

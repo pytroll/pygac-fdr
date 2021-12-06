@@ -18,4 +18,4 @@ dependencies:
     - pygac
     - trollsift
     - pytest-testconfig
-    - cfchecker @ git+https://github.com/cedadev/cf-checker#egg=cfchecker
+    - cfchecker
