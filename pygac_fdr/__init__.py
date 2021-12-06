@@ -16,13 +16,13 @@
 # You should have received a copy of the GNU General Public License along with
 # pygac-fdr. If not, see <http://www.gnu.org/licenses/>.
 
-from pkg_resources import DistributionNotFound, get_distribution
-
 try:
-    __version__ = get_distribution(__name__).version
-except DistributionNotFound:
-    # package is not installed
-    pass
+    from pygac.version import version as __version__  # noqa
+except ModuleNotFoundError:
+    raise ModuleNotFoundError(
+        "No module named pygac_fdr.version. This could mean "
+        "you didn't install 'pygac_fdr' properly. Try reinstalling ('pip "
+        "install').")
 try:
     # If the wheels of netCDF4 (used by this module) and h5py (imported by pygac) are incompatible,
     # segfaults or runtime errors like "NetCDF: HDF error" might occur. Prevent this by importing
