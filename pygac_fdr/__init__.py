@@ -17,7 +17,7 @@
 # pygac-fdr. If not, see <http://www.gnu.org/licenses/>.
 
 try:
-    from pygac.version import version as __version__  # noqa
+    from pygac_fdr.version import version as __version__  # noqa
 except ModuleNotFoundError:
     raise ModuleNotFoundError(
         "No module named pygac_fdr.version. This could mean "
