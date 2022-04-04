@@ -19,8 +19,11 @@
 import unittest
 
 import numpy as np
+import pytest
+import satpy
+import xarray as xr
 
-from pygac_fdr.writer import DEFAULT_ENCODING, NetcdfWriter
+from pygac_fdr.writer import DEFAULT_ENCODING, NetcdfAttributeProcessor, NetcdfWriter
 
 
 class NetcdfWriterTest(unittest.TestCase):
@@ -50,3 +53,114 @@ class NetcdfWriterTest(unittest.TestCase):
             )
             data_dec = data_enc * enc["scale_factor"] + enc["add_offset"]
             np.testing.assert_allclose(data_dec, data, rtol=0.1)
+
+
+class TestNetcdfAttributeProcessor:
+    @pytest.fixture
+    def scene(self):
+        scene = satpy.Scene()
+        acq_time = np.array([0, 1], dtype="datetime64[s]")
+        scene["4"] = xr.DataArray(
+            [[1, 2], [3, 4]],
+            dims=("y", "x"),
+            coords={
+                "acq_time": ("y", acq_time),
+            },
+            attrs={
+                "platform_name": "noaa15",
+                "resolution": 1234.0,
+                "sensor": "avhrr-1",
+                "sun_earth_distance_correction_factor": 0.9,
+                "calib_coeffs_version": "patmos-x 2012",
+                "orbital_parameters": {"foo": "bar"},
+            },
+        )
+        scene["latitude"] = xr.DataArray(
+            [[1, 2], [3, 4]],
+            dims=("y", "x"),
+            coords={
+                "acq_time": ("y", acq_time),
+            },
+        )
+        scene["longitude"] = xr.DataArray(
+            [[5, 6], [7, 8]],
+            dims=("y", "x"),
+            coords={
+                "acq_time": ("y", acq_time),
+            },
+        )
+        scene["qual_flags"] = xr.DataArray(
+            [[0, 0], [0, 0]],
+            dims=("y", "x"),
+            coords={
+                "acq_time": ("y", acq_time),
+            },
+        )
+        return scene
+
+    @pytest.fixture
+    def attr_proc(self, scene):
+        global_attrs = {"author": "Turtles"}
+        return NetcdfAttributeProcessor(scene, global_attrs)
+
+    def test_get_global_attrs(self, attr_proc):
+        expected = {
+            "author": "Turtles",
+            "end_time": "19700101T000001Z",
+            "geospatial_lat_max": 4,
+            "geospatial_lat_min": 1,
+            "geospatial_lat_resolution": "1234.0 meters",
+            "geospatial_lat_units": "degrees_north",
+            "geospatial_lon_max": 8,
+            "geospatial_lon_min": 5,
+            "geospatial_lon_resolution": "1234.0 meters",
+            "geospatial_lon_units": "degrees_east",
+            "instrument": "Earth Remote Sensing Instruments > Passive Remote Sensing > "
+            "Spectrometers/Radiometers > Imaging Spectrometers/Radiometers "
+            "> AVHRR-1",
+            "orbital_parameters": {"foo": "bar"},
+            "platform": "Earth Observation Satellites > NOAA POES > NOAA-15",
+            "start_time": "19700101T000000Z",
+            "sun_earth_distance_correction_factor": 0.9,
+            "time_coverage_start": "19981026T005400Z",
+            "version_calib_coeffs": "patmos-x 2012",
+        }
+        attrs = attr_proc.get_global_attrs()
+        self._drop_dynamic_attrs(attrs)
+        np.testing.assert_equal(attrs, expected)
+
+    def _drop_dynamic_attrs(self, attrs):
+        for drop_attrs in [
+            "date_created",
+            "version_satpy",
+            "version_pygac",
+            "version_pygac_fdr",
+        ]:
+            attrs.pop(drop_attrs)
+
+    def test_update_attrs(self, attr_proc, scene):
+        attr_proc.update_attrs(scene)
+        assert "comment" in scene["qual_flags"].attrs
+        expected = xr.DataArray(
+            [[1, 2], [3, 4]],
+            dims=("y", "x"),
+            coords={
+                "acq_time": xr.DataArray(
+                    np.array([0, 1], dtype="datetime64[s]"),
+                    dims="y",
+                    attrs={"standard_name": "time", "axis": "T"},
+                ),
+                "y": xr.DataArray(
+                    [0, 1], dims="y", attrs={"long_name": "Line number", "axis": "Y"}
+                ),
+                "x": xr.DataArray(
+                    [0, 1], dims="x", attrs={"long_name": "Pixel number", "axis": "X"}
+                ),
+            },
+            attrs={
+                "name": "4",
+                "resolution": 1234.0,
+            },
+        )
+        scene["4"].attrs.pop("_satpy_id", None)
+        xr.testing.assert_identical(scene["4"], expected)
