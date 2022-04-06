@@ -511,11 +511,11 @@ class NetcdfWriter:
         gac_header = scene["4"].attrs["gac_header"].copy()
         ac = GlobalAttributeComposer(scene, self.global_attrs)
         global_attrs = ac.get_global_attrs()
-        self._cleanup_attrs(scene)
-        self._set_custom_attrs(scene)
-        self._rename_datasets(scene)
         cp = CoordinateProcessor()
         cp.update_coordinates(scene)
+        au = AttributeUpdater()
+        au.update_attrs(scene)
+        self._rename_datasets(scene)
         encoding = self._get_encoding(scene)
         LOG.info("Writing calibrated scene to {}".format(filename))
         scene.save_datasets(
@@ -599,6 +599,47 @@ class GlobalAttributeComposer:
         return scene["4"].attrs
 
 
+class AttributeUpdater:
+    dataset_specific_attrs = [
+        "units",
+        "wavelength",
+        "calibration",
+        "long_name",
+        "standard_name",
+        "name",
+        "area",
+        "_satpy_id",
+    ]
+
+    def update_attrs(self, scene):
+        """Update dataset attributes."""
+        self._cleanup_attrs_in_scene(scene)
+        self._set_custom_attrs(scene)
+
+    def _cleanup_attrs_in_scene(self, scene):
+        """Cleanup attributes repeated in each dataset of the scene."""
+        for ds in scene.keys():
+            self._cleanup_attrs_in_dataset(scene[ds])
+
+    def _cleanup_attrs_in_dataset(self, dataset):
+        for drop_attr in self._get_attrs_to_be_dropped(dataset):
+            dataset.attrs.pop(drop_attr)
+
+    def _get_attrs_to_be_dropped(self, dataset):
+        keep_attrs = self.dataset_specific_attrs.copy()
+        if _has_xy_dims(dataset):
+            keep_attrs.append("resolution")
+        return set(dataset.attrs.keys()).difference(set(keep_attrs))
+
+    def _set_custom_attrs(self, scene):
+        """Set custom dataset attributes."""
+        scene["qual_flags"].attrs["comment"] = (
+            "Seven binary quality flags are provided per "
+            "scanline. See the num_flags coordinate for their "
+            "meanings."
+        )
+
+
 class CoordinateProcessor:
     def update_coordinates(self, scene):
         """Update dataset coordinates.
@@ -608,7 +649,7 @@ class CoordinateProcessor:
         """
         for ds_name in scene.keys():
             self._update_acq_time_coords(scene[ds_name])
-            if self._has_xy_dims(scene[ds_name]):
+            if _has_xy_dims(scene[ds_name]):
                 self._add_latlon_coords(scene, ds_name)
                 self._add_xy_coords(scene, ds_name)
 
@@ -623,14 +664,6 @@ class CoordinateProcessor:
         scene[ds_name].coords[coord_name] = (
             ("y", "x"),
             scene[coord_name].data,
-        )
-        self._update_latlon_coord_attrs(scene, ds_name, coord_name)
-
-    def _update_latlon_coord_attrs(self, scene, ds_name, coord_name):
-        scene[ds_name].coords[coord_name].attrs = dict(
-            (key, val)
-            for key, val in scene[coord_name].attrs.copy().items()
-            if not key.startswith("_satpy")
         )
 
     def _add_xy_coords(self, scene, ds_name):
@@ -650,5 +683,6 @@ class CoordinateProcessor:
             {"axis": "Y", "long_name": "Line number"}
         )
 
-    def _has_xy_dims(self, dataset):
-        return dataset.dims == ("y", "x")
+
+def _has_xy_dims(dataset):
+    return dataset.dims == ("y", "x")
