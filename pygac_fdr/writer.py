@@ -291,7 +291,7 @@ class NetcdfWriter:
                 "Invalid version number: {}. Minor/patch versions > 9 are not "
                 "supported".format(version)
             )
-        return sum(10 ** i * v for i, v in enumerate(reversed(numbers)))
+        return sum(10**i * v for i, v in enumerate(reversed(numbers)))
 
     def _compose_filename(self, scene):
         """Compose output filename."""
@@ -467,7 +467,10 @@ class NetcdfWriter:
         for ds_name in scene.keys():
             if scene[ds_name].dims == ("y", "x"):
                 for coord_name in ("latitude", "longitude"):
-                    scene[ds_name].coords[coord_name] = (("y", "x"), scene[coord_name].data)
+                    scene[ds_name].coords[coord_name] = (
+                        ("y", "x"),
+                        scene[coord_name].data,
+                    )
                     scene[ds_name].coords[coord_name].attrs = dict(
                         (key, val)
                         for key, val in scene[coord_name].attrs.copy().items()
@@ -509,7 +512,8 @@ class NetcdfWriter:
         self._cleanup_attrs(scene)
         self._set_custom_attrs(scene)
         self._rename_datasets(scene)
-        self._update_coordinates(scene)
+        cp = CoordinateProcessor()
+        cp.update_coordinates(scene)
         encoding = self._get_encoding(scene)
         LOG.info("Writing calibrated scene to {}".format(filename))
         scene.save_datasets(
@@ -524,3 +528,58 @@ class NetcdfWriter:
         self._append_gac_header(filename, gac_header)
         self._fix_global_attrs(filename, global_attrs)
         return filename
+
+
+class CoordinateProcessor:
+    def update_coordinates(self, scene):
+        """Update dataset coordinates.
+
+        Setting the relation explicitly enables xr.to_netcdf() to set the proper coordinate
+        attributes.
+        """
+        for ds_name in scene.keys():
+            self._update_acq_time_coords(scene[ds_name])
+            if self._has_xy_dims(scene[ds_name]):
+                self._add_latlon_coords(scene, ds_name)
+                self._add_xy_coords(scene, ds_name)
+
+    def _update_acq_time_coords(self, dataset):
+        dataset["acq_time"].attrs.update({"standard_name": "time", "axis": "T"})
+
+    def _add_latlon_coords(self, scene, ds_name):
+        for coord_name in ("latitude", "longitude"):
+            self._add_latlon_coord(scene, ds_name, coord_name)
+
+    def _add_latlon_coord(self, scene, ds_name, coord_name):
+        scene[ds_name].coords[coord_name] = (
+            ("y", "x"),
+            scene[coord_name].data,
+        )
+        self._update_latlon_coord_attrs(scene, ds_name, coord_name)
+
+    def _update_latlon_coord_attrs(self, scene, ds_name, coord_name):
+        scene[ds_name].coords[coord_name].attrs = dict(
+            (key, val)
+            for key, val in scene[coord_name].attrs.copy().items()
+            if not key.startswith("_satpy")
+        )
+
+    def _add_xy_coords(self, scene, ds_name):
+        scene[ds_name] = scene[ds_name].assign_coords(
+            {
+                "y": np.arange(scene[ds_name].shape[0]),
+                "x": np.arange(scene[ds_name].shape[1]),
+            }
+        )
+        self._update_xy_coord_attrs(scene, ds_name)
+
+    def _update_xy_coord_attrs(self, scene, ds_name):
+        scene[ds_name].coords["x"].attrs.update(
+            {"axis": "X", "long_name": "Pixel number"}
+        )
+        scene[ds_name].coords["y"].attrs.update(
+            {"axis": "Y", "long_name": "Line number"}
+        )
+
+    def _has_xy_dims(self, dataset):
+        return dataset.dims == ("y", "x")
