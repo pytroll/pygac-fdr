@@ -392,20 +392,30 @@ class NetcdfWriter:
 
         Args:
             scene (satpy.Scene): AVHRR GAC scene
-            output_dir: Output directory. Filenames are composed dynamically based on the scene
-                        contents.
         Returns:
             Names of files written.
         """
         filename = os.path.join(self.output_dir, self._compose_filename(scene))
-        gac_header = scene["4"].attrs["gac_header"].copy()
+        gac_header = self._get_gac_header(scene)
+        global_attrs = self._get_global_attrs(scene)
+        self._preproc_scene(scene)
+        self._save_datasets(scene, filename, global_attrs)
+        self._postproc_file(filename, gac_header, global_attrs)
+        return filename
+
+    def _get_gac_header(self, scene):
+        return scene["4"].attrs["gac_header"].copy()
+
+    def _get_global_attrs(self, scene):
         ac = GlobalAttributeComposer(scene, self.global_attrs)
-        global_attrs = ac.get_global_attrs()
-        cp = CoordinateProcessor()
-        cp.update_coordinates(scene)
-        au = AttributeUpdater()
-        au.update_attrs(scene)
+        return ac.get_global_attrs()
+
+    def _preproc_scene(self, scene):
+        CoordinateProcessor().update_coordinates(scene)
+        AttributeUpdater().update_attrs(scene)
         self._rename_datasets(scene)
+
+    def _save_datasets(self, scene, filename, global_attrs):
         encoding = self._get_encoding(scene)
         LOG.info("Writing calibrated scene to {}".format(filename))
         scene.save_datasets(
@@ -417,9 +427,10 @@ class NetcdfWriter:
             encoding=encoding,
             pretty=True,
         )
+
+    def _postproc_file(self, filename, gac_header, global_attrs):
         self._append_gac_header(filename, gac_header)
         self._fix_global_attrs(filename, global_attrs)
-        return filename
 
 
 class GlobalAttributeComposer:
