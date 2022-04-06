@@ -234,7 +234,7 @@ class TestNetcdfWriter:
             "author": "Turtles",
             "product_version": "1.2.3",
         }
-        return NetcdfWriter(user_defined_attrs)
+        return NetcdfWriter(global_attrs=user_defined_attrs)
 
     @pytest.fixture
     def output_file(self, writer, scene):

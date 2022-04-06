@@ -256,6 +256,7 @@ class NetcdfWriter:
 
     def __init__(
         self,
+        output_dir=None,
         global_attrs=None,
         gac_header_attrs=None,
         encoding=None,
@@ -267,6 +268,7 @@ class NetcdfWriter:
         Args:
             debug: If True, use constant creation time in output filenames.
         """
+        self.output_dir = output_dir or "."
         self.global_attrs = global_attrs or {}
         self.gac_header_attrs = gac_header_attrs or {}
         self.engine = engine or self.def_engine
@@ -385,7 +387,7 @@ class NetcdfWriter:
         header = xr.Dataset(data_vars, attrs=self.gac_header_attrs)
         header.to_netcdf(filename, mode="a", group="gac_header")
 
-    def write(self, scene, output_dir=None):
+    def write(self, scene):
         """Write an AVHRR GAC scene to netCDF.
 
         Args:
@@ -395,8 +397,7 @@ class NetcdfWriter:
         Returns:
             Names of files written.
         """
-        output_dir = output_dir or "."
-        filename = os.path.join(output_dir, self._compose_filename(scene))
+        filename = os.path.join(self.output_dir, self._compose_filename(scene))
         gac_header = scene["4"].attrs["gac_header"].copy()
         ac = GlobalAttributeComposer(scene, self.global_attrs)
         global_attrs = ac.get_global_attrs()
