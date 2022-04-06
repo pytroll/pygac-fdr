@@ -542,6 +542,8 @@ class AttributeUpdater:
 
 
 class CoordinateProcessor:
+    latlon_attrs = ["units", "standard_name"]
+
     def update_coordinates(self, scene):
         """Update dataset coordinates.
 
@@ -565,6 +567,14 @@ class CoordinateProcessor:
         scene[ds_name].coords[coord_name] = (
             ("y", "x"),
             scene[coord_name].data,
+        )
+        self._add_latlon_coord_attrs(scene, ds_name, coord_name)
+
+    def _add_latlon_coord_attrs(self, scene, ds_name, coord_name):
+        scene[ds_name].coords[coord_name].attrs = dict(
+            (key, val)
+            for key, val in scene[coord_name].attrs.items()
+            if key in self.latlon_attrs
         )
 
     def _add_xy_coords(self, scene, ds_name):
