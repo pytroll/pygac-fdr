@@ -46,6 +46,7 @@ DATASET_NAMES = {
     "4": "brightness_temperature_channel_4",
     "5": "brightness_temperature_channel_5",
 }
+TIME_FMT = "%Y%m%dT%H%M%SZ"
 FILL_VALUE_INT16 = -32767
 FILL_VALUE_INT32 = -2147483648
 DEFAULT_ENCODING = {
@@ -230,6 +231,13 @@ def get_gcmd_instrument_name(pygac_name):
     return "{} > {}".format(cat, pygac_name.upper())
 
 
+def _get_temp_cov(scene):
+    """Get temporal coverage of the dataset."""
+    tstart = scene["4"]["acq_time"][0]
+    tend = scene["4"]["acq_time"][-1]
+    return tstart.dt, tend.dt
+
+
 class NetcdfWriter:
     """Write AVHRR GAC scenes to netCDF."""
 
@@ -244,7 +252,6 @@ class NetcdfWriter:
     """Attributes shared between all datasets and to be included only once"""
 
     def_fname_fmt = "avhrr_gac_fdr_{platform}_{start_time}_{end_time}.nc"
-    time_fmt = "%Y%m%dT%H%M%SZ"
     def_engine = "netcdf4"
 
     def __init__(
@@ -269,12 +276,6 @@ class NetcdfWriter:
         # User defined encoding takes precedence over default encoding
         self.encoding = DEFAULT_ENCODING.copy()
         self.encoding.update(encoding or {})
-
-    def _get_temp_cov(self, scene):
-        """Get temporal coverage of the dataset."""
-        tstart = scene["4"]["acq_time"][0]
-        tend = scene["4"]["acq_time"][-1]
-        return tstart.dt, tend.dt
 
     def _get_integer_version(self, version):
         """Convert version string to integer.
@@ -302,7 +303,7 @@ class NetcdfWriter:
             creation_time = datetime(2020, 1, 1)
         else:
             creation_time = datetime.now()
-        start_time, end_time = self._get_temp_cov(scene)
+        start_time, end_time = _get_temp_cov(scene)
         platform = get_platform_short_name(scene["4"].attrs["platform_name"])
         try:
             version = self.global_attrs["product_version"]
@@ -313,12 +314,12 @@ class NetcdfWriter:
             warnings.warn(msg)
         version_int = self._get_integer_version(version)
         fields = {
-            "start_time": start_time.strftime(self.time_fmt).data,
-            "end_time": end_time.strftime(self.time_fmt).data,
+            "start_time": start_time.strftime(TIME_FMT).data,
+            "end_time": end_time.strftime(TIME_FMT).data,
             "platform": platform,
             "version": version,
             "version_int": version_int,
-            "creation_time": creation_time.strftime(self.time_fmt),
+            "creation_time": creation_time.strftime(TIME_FMT),
         }
 
         # Search for additional static fields in global attributes
@@ -350,7 +351,7 @@ class NetcdfWriter:
                 pass
 
         # Set some dynamic attributes
-        start_time, end_time = self._get_temp_cov(scene)
+        start_time, end_time = _get_temp_cov(scene)
         time_cov_start, time_cov_end = TIME_COVERAGE[
             get_gcmd_platform_name(ch4.attrs["platform_name"], with_category=False)
         ]
@@ -360,8 +361,8 @@ class NetcdfWriter:
                 "platform": get_gcmd_platform_name(ch4.attrs["platform_name"]),
                 "instrument": get_gcmd_instrument_name(ch4.attrs["sensor"]),
                 "date_created": datetime.now().isoformat(),
-                "start_time": start_time.strftime(self.time_fmt).data,
-                "end_time": end_time.strftime(self.time_fmt).data,
+                "start_time": start_time.strftime(TIME_FMT).data,
+                "end_time": end_time.strftime(TIME_FMT).data,
                 "sun_earth_distance_correction_factor": ch4.attrs[
                     "sun_earth_distance_correction_factor"
                 ],
@@ -377,11 +378,11 @@ class NetcdfWriter:
                 "geospatial_lat_units": "degrees_north",
                 "geospatial_lon_resolution": "{} meters".format(resol),
                 "geospatial_lat_resolution": "{} meters".format(resol),
-                "time_coverage_start": time_cov_start.strftime(self.time_fmt),
+                "time_coverage_start": time_cov_start.strftime(TIME_FMT),
             }
         )
         if time_cov_end:  # Otherwise still operational
-            global_attrs["time_coverage_end"] = time_cov_end.strftime(self.time_fmt)
+            global_attrs["time_coverage_end"] = time_cov_end.strftime(TIME_FMT)
         global_attrs.pop("sensor")  # we already have "instrument"
 
         # User defined static attributes take precedence over dynamic attributes.
@@ -508,7 +509,8 @@ class NetcdfWriter:
         output_dir = output_dir or "."
         filename = os.path.join(output_dir, self._compose_filename(scene))
         gac_header = scene["4"].attrs["gac_header"].copy()
-        global_attrs = self._get_global_attrs(scene)
+        ac = GlobalAttributeComposer(scene, self.global_attrs)
+        global_attrs = ac.get_global_attrs()
         self._cleanup_attrs(scene)
         self._set_custom_attrs(scene)
         self._rename_datasets(scene)
@@ -528,6 +530,73 @@ class NetcdfWriter:
         self._append_gac_header(filename, gac_header)
         self._fix_global_attrs(filename, global_attrs)
         return filename
+
+
+class GlobalAttributeComposer:
+    """Get and set netCDF attributes."""
+
+    def __init__(self, scene, user_defined_attrs=None):
+        self.scene = scene
+        self.user_defined_attrs = user_defined_attrs or {}
+
+    def get_global_attrs(self):
+        """Compile global attributes."""
+        global_attrs = self._copy_scene_attrs()
+        global_attrs.update(self._compute_global_attrs())
+        # User defined attributes take precedence.
+        global_attrs.update(self.user_defined_attrs)
+        return global_attrs
+
+    def _copy_scene_attrs(self):
+        scene_attrs = self.scene.attrs.copy()
+        self._drop_unused_scene_attrs(scene_attrs)
+        return scene_attrs
+
+    def _drop_unused_scene_attrs(self, attrs):
+        attrs.pop("sensor", None)  # we already have "instrument"
+
+    def _compute_global_attrs(self):
+        ch_attrs = self._get_channel_attrs(self.scene)
+        start_time, end_time = _get_temp_cov(self.scene)
+        time_cov_start, time_cov_end = TIME_COVERAGE[
+            get_gcmd_platform_name(ch_attrs["platform_name"], with_category=False)
+        ]
+        resol = ch_attrs["resolution"]  # all channels have the same resolution
+        global_attrs = {
+            "platform": get_gcmd_platform_name(ch_attrs["platform_name"]),
+            "instrument": get_gcmd_instrument_name(ch_attrs["sensor"]),
+            "date_created": datetime.now().isoformat(),
+            "start_time": start_time.strftime(TIME_FMT).data,
+            "end_time": end_time.strftime(TIME_FMT).data,
+            "sun_earth_distance_correction_factor": ch_attrs[
+                "sun_earth_distance_correction_factor"
+            ],
+            "version_pygac": pygac.__version__,
+            "version_pygac_fdr": pygac_fdr.__version__,
+            "version_satpy": satpy.__version__,
+            "version_calib_coeffs": ch_attrs["calib_coeffs_version"],
+            "geospatial_lon_min": self.scene["longitude"].min().values,
+            "geospatial_lon_max": self.scene["longitude"].max().values,
+            "geospatial_lon_units": "degrees_east",
+            "geospatial_lat_min": self.scene["latitude"].min().values,
+            "geospatial_lat_max": self.scene["latitude"].max().values,
+            "geospatial_lat_units": "degrees_north",
+            "geospatial_lon_resolution": "{} meters".format(resol),
+            "geospatial_lat_resolution": "{} meters".format(resol),
+            "time_coverage_start": time_cov_start.strftime(TIME_FMT),
+            "orbital_parameters": ch_attrs["orbital_parameters"],
+        }
+        if time_cov_end:  # Otherwise still operational
+            global_attrs["time_coverage_end"] = time_cov_end.strftime(TIME_FMT)
+        return global_attrs
+
+    def _get_channel_attrs(self, scene):
+        """Get channel attributes.
+
+        Using channel 4 here, because that is available for all sensor
+        generations.
+        """
+        return scene["4"].attrs
 
 
 class CoordinateProcessor:
