@@ -336,72 +336,6 @@ class NetcdfWriter:
 
         return self.fname_fmt.format(**fields)
 
-    def _get_global_attrs(self, scene):
-        """Compile global attributes."""
-        # Start with scene attributes
-        global_attrs = scene.attrs.copy()
-
-        # Transfer attributes shared by all channels (using channel 4 here, but could be any
-        # channel)
-        ch4 = scene["4"]
-        for attr in self.shared_attrs:
-            try:
-                global_attrs[attr] = ch4.attrs[attr]
-            except KeyError:
-                pass
-
-        # Set some dynamic attributes
-        start_time, end_time = _get_temp_cov(scene)
-        time_cov_start, time_cov_end = TIME_COVERAGE[
-            get_gcmd_platform_name(ch4.attrs["platform_name"], with_category=False)
-        ]
-        resol = ch4.attrs["resolution"]  # all channels have the same resolution
-        global_attrs.update(
-            {
-                "platform": get_gcmd_platform_name(ch4.attrs["platform_name"]),
-                "instrument": get_gcmd_instrument_name(ch4.attrs["sensor"]),
-                "date_created": datetime.now().isoformat(),
-                "start_time": start_time.strftime(TIME_FMT).data,
-                "end_time": end_time.strftime(TIME_FMT).data,
-                "sun_earth_distance_correction_factor": ch4.attrs[
-                    "sun_earth_distance_correction_factor"
-                ],
-                "version_pygac": pygac.__version__,
-                "version_pygac_fdr": pygac_fdr.__version__,
-                "version_satpy": satpy.__version__,
-                "version_calib_coeffs": ch4.attrs["calib_coeffs_version"],
-                "geospatial_lon_min": scene["longitude"].min().values,
-                "geospatial_lon_max": scene["longitude"].max().values,
-                "geospatial_lon_units": "degrees_east",
-                "geospatial_lat_min": scene["latitude"].min().values,
-                "geospatial_lat_max": scene["latitude"].max().values,
-                "geospatial_lat_units": "degrees_north",
-                "geospatial_lon_resolution": "{} meters".format(resol),
-                "geospatial_lat_resolution": "{} meters".format(resol),
-                "time_coverage_start": time_cov_start.strftime(TIME_FMT),
-            }
-        )
-        if time_cov_end:  # Otherwise still operational
-            global_attrs["time_coverage_end"] = time_cov_end.strftime(TIME_FMT)
-        global_attrs.pop("sensor")  # we already have "instrument"
-
-        # User defined static attributes take precedence over dynamic attributes.
-        global_attrs.update(self.global_attrs)
-
-        return global_attrs
-
-    def _cleanup_attrs(self, scene):
-        """Cleanup attributes repeated in each dataset of the scene."""
-        keep_attrs = self.dataset_specific_attrs + ["name", "area"]
-        for ds in scene.keys():
-            scene[ds].attrs = dict(
-                [
-                    (attr, val)
-                    for attr, val in scene[ds].attrs.items()
-                    if attr in keep_attrs
-                ]
-            )
-
     def _rename_datasets(self, scene):
         """Rename datasets in the scene to more verbose names."""
         for old_name, new_name in DATASET_NAMES.items():
@@ -410,32 +344,6 @@ class NetcdfWriter:
             except KeyError:
                 continue
             del scene[old_name]
-
-    def _set_custom_attrs(self, scene):
-        """Set custom dataset attributes."""
-        scene["qual_flags"].attrs["comment"] = (
-            "Seven binary quality flags are provided per "
-            "scanline. See the num_flags coordinate for their "
-            "meanings."
-        )
-        for ds_name in scene.keys():
-            scene[ds_name]["acq_time"].attrs.update(
-                {"standard_name": "time", "axis": "T"}
-            )
-
-            if scene[ds_name].dims == ("y", "x"):
-                scene[ds_name] = scene[ds_name].assign_coords(
-                    {
-                        "y": np.arange(scene[ds_name].shape[0]),
-                        "x": np.arange(scene[ds_name].shape[1]),
-                    }
-                )
-                scene[ds_name].coords["x"].attrs.update(
-                    {"axis": "X", "long_name": "Pixel number"}
-                )
-                scene[ds_name].coords["y"].attrs.update(
-                    {"axis": "Y", "long_name": "Line number"}
-                )
 
     def _get_encoding(self, scene):
         """Get netCDF encoding for the datasets in the scene."""
@@ -458,25 +366,6 @@ class NetcdfWriter:
                 enc["add_offset"] = np.float64(enc["add_offset"])
 
         return encoding
-
-    def _update_coordinates(self, scene):
-        """Update dataset coordinates.
-
-        Setting the relation explicitly enables xr.to_netcdf() to set the proper coordinate
-        attributes.
-        """
-        for ds_name in scene.keys():
-            if scene[ds_name].dims == ("y", "x"):
-                for coord_name in ("latitude", "longitude"):
-                    scene[ds_name].coords[coord_name] = (
-                        ("y", "x"),
-                        scene[coord_name].data,
-                    )
-                    scene[ds_name].coords[coord_name].attrs = dict(
-                        (key, val)
-                        for key, val in scene[coord_name].attrs.copy().items()
-                        if not key.startswith("_satpy")
-                    )
 
     def _fix_global_attrs(self, filename, global_attrs):
         LOG.info("Fixing global attributes")
