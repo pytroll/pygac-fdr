@@ -16,9 +16,16 @@
 # You should have received a copy of the GNU General Public License along with
 # pygac-fdr. If not, see <http://www.gnu.org/licenses/>.
 
+import datetime as dt
+import os
 import unittest
 
 import numpy as np
+import pytest
+import satpy
+import xarray as xr
+from pyresample.geometry import SwathDefinition
+from satpy.tests.utils import make_dataid
 
 from pygac_fdr.writer import DEFAULT_ENCODING, NetcdfWriter
 
@@ -50,3 +57,202 @@ class NetcdfWriterTest(unittest.TestCase):
             )
             data_dec = data_enc * enc["scale_factor"] + enc["add_offset"]
             np.testing.assert_allclose(data_dec, data, rtol=0.1)
+
+
+class TestNetcdfWriter:
+    @pytest.fixture
+    def scene_lonlats(self):
+        lons = [[5, 6], [7, 8]]
+        lats = [[1, 2], [3, 4]]
+        return lons, lats
+
+    @pytest.fixture
+    def scene_dataset_attrs(self, scene_lonlats):
+        lons, lats = scene_lonlats
+        return {
+            "platform_name": "noaa15",
+            "sensor": "avhrr-1",
+            "sun_earth_distance_correction_factor": 0.9,
+            "calib_coeffs_version": "patmos-x 2012",
+            "orbital_parameters": {"tle": "my_tle"},
+            "long_name": "my_long_name",
+            "units": "my_units",
+            "standard_name": "my_standard_name",
+            "area": SwathDefinition(lons, lats),
+            "gac_header": np.array([(1, 2)], dtype=[("foo", "f4"), ("bar", "i4")]),
+            "start_time": dt.datetime(2000, 1, 1),
+            "end_time": dt.datetime(2000, 1, 1),
+        }
+
+    @pytest.fixture
+    def scene(self, scene_dataset_attrs, scene_lonlats):
+        acq_time = np.array([0, 1], dtype="datetime64[s]")
+        lons, lats = scene_lonlats
+        scene = satpy.Scene()
+        scene.attrs = {"sensor": "avhrr-1"}
+        ch4_id = make_dataid(
+            name="4",
+            resolution=1234.0,
+            wavelength="10.8um",
+            modifiers=(),
+            calibration="brightness_temperature",
+        )
+        lon_id = make_dataid(name="longitude", resolution=1234.0, modifiers=())
+        lat_id = make_dataid(name="latitude", resolution=1234.0, modifiers=())
+        qual_flags_id = make_dataid(name="qual_flags", resolution=1234.0, modifiers=())
+        scene[ch4_id] = xr.DataArray(
+            [[1, 2], [3, 4]],
+            dims=("y", "x"),
+            coords={
+                "acq_time": ("y", acq_time),
+            },
+            attrs=scene_dataset_attrs,
+        )
+        scene[lat_id] = xr.DataArray(
+            lats,
+            dims=("y", "x"),
+            coords={
+                "acq_time": ("y", acq_time),
+            },
+        )
+        scene[lon_id] = xr.DataArray(
+            lons,
+            dims=("y", "x"),
+            coords={
+                "acq_time": ("y", acq_time),
+            },
+        )
+        scene[qual_flags_id] = xr.DataArray(
+            [[0, 1, 0], [0, 0, 1]],
+            dims=("y", "num_flags"),
+            coords={
+                "acq_time": ("y", acq_time),
+            },
+        )
+        return scene
+
+    @pytest.fixture
+    def expected(self):
+        acq_time = xr.DataArray(
+            np.array([0, 1], dtype="datetime64[s]"),
+            dims="y",
+            attrs={"standard_name": "time", "axis": "T"},
+        )
+        latitude = xr.DataArray(
+            np.array([[1, 2], [3, 4]]),
+            dims=("y", "x"),
+            attrs={
+                "name": "latitude",
+                "standard_name": "latitude",
+                "units": "degrees_north",
+            },
+        )
+        longitude = xr.DataArray(
+            np.array([[5, 6], [7, 8]]),
+            dims=("y", "x"),
+            attrs={
+                "name": "longitude",
+                "standard_name": "longitude",
+                "units": "degrees_east",
+            },
+        )
+        y = xr.DataArray(
+            np.array([0, 1]),
+            dims="y",
+            attrs={"long_name": "Line number", "axis": "Y"},
+        )
+        x = xr.DataArray(
+            np.array([0, 1]),
+            dims="x",
+            attrs={"long_name": "Pixel number", "axis": "X"},
+        )
+        bt_ch4 = xr.DataArray(
+            [[1, 2], [3, 4]],
+            dims=("y", "x"),
+            coords={
+                "acq_time": acq_time,
+                "latitude": latitude,
+                "longitude": longitude,
+                "y": y,
+                "x": x,
+            },
+            attrs={
+                "units": "my_units",
+                "wavelength": "10.8um",
+                "calibration": "brightness_temperature",
+                "long_name": "my_long_name",
+                "standard_name": "my_standard_name",
+                "resolution": 1234.0,
+                "modifiers": [],
+            },
+        )
+        qual_flags = xr.DataArray(
+            [[0, 1, 0], [0, 0, 1]],
+            dims=("y", "num_flags"),
+            coords={
+                "acq_time": acq_time,
+                "y": y,
+            },
+            attrs={
+                "long_name": "qual_flags",
+                "comment": "Seven binary quality flags are provided per "
+                "scanline. See the num_flags coordinate for their "
+                "meanings.",
+            },
+        )
+        return xr.Dataset(
+            {"brightness_temperature_channel_4": bt_ch4, "qual_flags": qual_flags},
+            attrs={
+                "author": "Turtles",
+                "end_time": "19700101T000001Z",
+                "geospatial_lat_max": 4,
+                "geospatial_lat_min": 1,
+                "geospatial_lat_resolution": "1234.0 meters",
+                "geospatial_lat_units": "degrees_north",
+                "geospatial_lon_max": 8,
+                "geospatial_lon_min": 5,
+                "geospatial_lon_resolution": "1234.0 meters",
+                "geospatial_lon_units": "degrees_east",
+                "instrument": "Earth Remote Sensing Instruments > Passive Remote Sensing > "
+                "Spectrometers/Radiometers > Imaging Spectrometers/Radiometers "
+                "> AVHRR-1",
+                "orbital_parameters_tle": "my_tle",
+                "platform": "Earth Observation Satellites > NOAA POES > NOAA-15",
+                "start_time": "19700101T000000Z",
+                "sun_earth_distance_correction_factor": 0.9,
+                "time_coverage_start": "19981026T005400Z",
+                "version_calib_coeffs": "patmos-x 2012",
+                "Conventions": "CF-1.8",
+                "product_version": "1.2.3",
+            },
+        )
+
+    @pytest.fixture
+    def writer(self):
+        user_defined_attrs = {
+            "Conventions": "CF-1.8",
+            "author": "Turtles",
+            "product_version": "1.2.3",
+        }
+        return NetcdfWriter(user_defined_attrs)
+
+    @pytest.fixture
+    def output_file(self, writer, scene):
+        filename = writer.write(scene)
+        yield filename
+        os.unlink(filename)
+
+    def test_write(self, output_file, expected):
+        with xr.open_dataset(output_file) as written:
+            self._drop_dynamic_attrs(written.attrs)
+            xr.testing.assert_identical(written, expected)
+
+    def _drop_dynamic_attrs(self, attrs):
+        for drop_attrs in [
+            "history",
+            "date_created",
+            "version_satpy",
+            "version_pygac",
+            "version_pygac_fdr",
+        ]:
+            attrs.pop(drop_attrs)
