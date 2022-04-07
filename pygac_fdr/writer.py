@@ -574,9 +574,9 @@ class CoordinateProcessor:
 
     def _add_latlon_coords(self, scene, ds_name):
         for coord_name in ("latitude", "longitude"):
-            self._add_latlon_coord(scene, ds_name, coord_name)
+            self._add_single_latlon_coord(scene, ds_name, coord_name)
 
-    def _add_latlon_coord(self, scene, ds_name, coord_name):
+    def _add_single_latlon_coord(self, scene, ds_name, coord_name):
         scene[ds_name].coords[coord_name] = (
             ("y", "x"),
             scene[coord_name].data,
