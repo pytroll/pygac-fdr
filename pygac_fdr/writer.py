@@ -266,7 +266,15 @@ class NetcdfWriter:
     ):
         """
         Args:
-            debug: If True, use constant creation time in output filenames.
+            output_dir (str): Specifies the output directory. Default: Current
+                directory.
+            global_attrs (dict): User-defined global attributes to be included.
+            gac_header_attrs (dict): Attributes describing the raw GAC header.
+            encoding (dict): Specifies how to encode the datasets. See
+                https://xarray.pydata.org/en/stable/user-guide/io.html?highlight=encoding#writing-encoded-data
+            engine (str): NetCDF engine to be used. Default: netcdf4
+            fname_fmt (str): Specifies the filename format.
+            debug (bool): If True, use constant creation time in output filenames.
         """
         self.output_dir = output_dir or "."
         self.global_attrs = global_attrs or {}
@@ -551,7 +559,8 @@ class CoordinateProcessor:
     def update_coordinates(self, scene):
         """Update dataset coordinates.
 
-        Setting the relation explicitly enables xr.to_netcdf() to set the proper coordinate
+        For each dataset with dimensions (y, x), add coordinates (y, x, lat,
+        lon). This enables xr.to_netcdf() to set the proper coordinate
         attributes.
         """
         for ds_name in scene.keys():
