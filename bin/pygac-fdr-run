@@ -27,17 +27,18 @@ from satpy.readers import FSFile
 
 from pygac_fdr.config import read_config
 from pygac_fdr.reader import read_gac
-from pygac_fdr.utils import LOGGER_NAME, logging_on, TarFileSystem
+from pygac_fdr.utils import LOGGER_NAME, TarFileSystem, logging_on
 from pygac_fdr.writer import NetcdfWriter
 
 LOG = logging.getLogger(LOGGER_NAME)
 
 
 class HideGzFSFile(FSFile):
-    _gz_suffix = re.compile(r'\.gz$')
+    _gz_suffix = re.compile(r"\.gz$")
+
     def __fspath__(self):
         path = super().__fspath__()
-        return self._gz_suffix.sub('', path)
+        return self._gz_suffix.sub("", path)
 
 
 def process_file(filename, config):
@@ -47,6 +48,7 @@ def process_file(filename, config):
             filename, reader_kwargs=config["controls"].get("reader_kwargs")
         )
         writer = NetcdfWriter(
+            output_dir=config["output"].get("output_dir"),
             global_attrs=config.get("global_attrs"),
             gac_header_attrs=config.get("gac_header_attrs"),
             fname_fmt=config["output"].get("fname_fmt"),
@@ -54,7 +56,7 @@ def process_file(filename, config):
             engine=config["netcdf"].get("engine"),
             debug=config["controls"].get("debug"),
         )
-        writer.write(output_dir=config["output"].get("output_dir"), scene=scene)
+        writer.write(scene=scene)
         success = True
     except Exception as err:
         if config["controls"]["debug"]:
@@ -68,16 +70,16 @@ def process_tarball(tarball, config):
     LOG.info("Processing tarball {}".format(tarball))
     failures = []
     with closing(TarFileSystem(tarball)) as archive:
-        filepaths = archive.find('', details=False, withdirs=False)
+        filepaths = archive.find("", details=False, withdirs=False)
         for filepath in filepaths:
             filename = HideGzFSFile(filepath, fs=archive)
             success = process_file(filename, config)
             if not success:
                 failures.append(filename)
     if failures:
-        LOG.error('Could not process the following files: {}'.format(failures))
+        LOG.error("Could not process the following files: {}".format(failures))
     else:
-        LOG.info('Successfully processed all files in {}'.format(tarball))
+        LOG.info("Successfully processed all files in {}".format(tarball))
 
 
 if __name__ == "__main__":
