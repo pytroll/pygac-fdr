@@ -412,7 +412,7 @@ class NetcdfWriter:
 
     def _preproc_scene(self, scene):
         CoordinateProcessor().update_coordinates(scene)
-        AttributeUpdater().update_attrs(scene)
+        AttributeProcessor().update_attrs(scene)
         self._rename_datasets(scene)
 
     def _save_datasets(self, scene, filename, global_attrs):
@@ -434,14 +434,14 @@ class NetcdfWriter:
 
 
 class GlobalAttributeComposer:
-    """Get and set netCDF attributes."""
+    """Compose global attributes."""
 
     def __init__(self, scene, user_defined_attrs=None):
         self.scene = scene
         self.user_defined_attrs = user_defined_attrs or {}
 
     def get_global_attrs(self):
-        """Compile global attributes."""
+        """Compose global attributes."""
         global_attrs = self._copy_scene_attrs()
         global_attrs.update(self._compute_global_attrs())
         # User defined attributes take precedence.
@@ -457,7 +457,7 @@ class GlobalAttributeComposer:
         attrs.pop("sensor", None)  # we already have "instrument"
 
     def _compute_global_attrs(self):
-        ch_attrs = self._get_channel_attrs(self.scene)
+        ch_attrs = self._get_channel_attrs()
         start_time, end_time = _get_temp_cov(self.scene)
         time_cov_start, time_cov_end = TIME_COVERAGE[
             get_gcmd_platform_name(ch_attrs["platform_name"], with_category=False)
@@ -491,16 +491,18 @@ class GlobalAttributeComposer:
             global_attrs["time_coverage_end"] = time_cov_end.strftime(TIME_FMT)
         return global_attrs
 
-    def _get_channel_attrs(self, scene):
+    def _get_channel_attrs(self):
         """Get channel attributes.
 
         Using channel 4 here, because that is available for all sensor
         generations.
         """
-        return scene["4"].attrs
+        return self.scene["4"].attrs
 
 
-class AttributeUpdater:
+class AttributeProcessor:
+    """Update dataset attributes."""
+
     dataset_specific_attrs = [
         "units",
         "wavelength",
@@ -542,6 +544,8 @@ class AttributeUpdater:
 
 
 class CoordinateProcessor:
+    """Update dataset coordinates."""
+
     latlon_attrs = ["units", "standard_name"]
 
     def update_coordinates(self, scene):
