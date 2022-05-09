@@ -121,61 +121,9 @@ ADDITIONAL_METADATA = [
 
 
 class MetadataCollector:
-    """Collect and complement metadata from level 1c files.
+    """Collect metadata from level 1c files."""
 
-    Additional metadata include global quality flags as well equator crossing time and
-    overlap information.
-    """
-
-    def __init__(self, min_num_lines=50, min_duration=5):
-        """
-        Args:
-            min_num_lines: Minimum number of scanlines for a file to be considered ok. Otherwise
-                           it will flagged as too short.
-            min_duration: Minimum duration (in minutes) for a file to be considered ok. Otherwise
-                          it will flagged as too short.
-        """
-        self.min_num_lines = min_num_lines
-        self.min_duration = np.timedelta64(min_duration, "m")
-
-    def get_metadata(self, filenames):
-        """Collect and complement metadata from the given level 1c files."""
-        LOG.info("Collecting metadata")
-        df = pd.DataFrame(self._collect_metadata(filenames))
-        df.sort_values(by=["start_time", "end_time"], inplace=True)
-
-        # Set quality flags
-        LOG.info("Computing quality flags")
-        df = df.groupby("platform").apply(
-            lambda x: self._set_global_qual_flags(x, x.name)
-        )
-        df = df.drop(["platform"], axis=1)
-
-        # Calculate overlap
-        LOG.info("Computing overlap")
-        df = df.groupby("platform").apply(lambda x: self._calc_overlap(x))
-
-        return df
-
-    def save_sql(self, mda, dbfile, if_exists):
-        """Save metadata to sqlite database."""
-        con = sqlite3.connect(dbfile)
-        mda.to_sql(name="metadata", con=con, if_exists=if_exists)
-        con.commit()
-        con.close()
-
-    def read_sql(self, dbfile):
-        """Read metadata from sqlite database."""
-        with sqlite3.connect(dbfile) as con:
-            mda = pd.read_sql("select * from metadata", con)
-        mda = mda.set_index(["platform", "level_1"])
-        mda.fillna(value=np.nan, inplace=True)
-        for col in mda.columns:
-            if "time" in col:
-                mda[col] = mda[col].astype("datetime64[ns]")
-        return mda
-
-    def _collect_metadata(self, filenames):
+    def collect_metadata(self, filenames):
         """Collect metadata from the given level 1c files."""
         records = []
         for filename in filenames:
@@ -201,7 +149,7 @@ class MetadataCollector:
                     "global_quality_flag": QualityFlags.OK,
                 }
                 records.append(rec)
-        return records
+        return pd.DataFrame(records)
 
     def _get_midnight_line(self, acq_time):
         """Find scanline where the UTC date increases by one day.
@@ -246,6 +194,42 @@ class MetadataCollector:
         eq_cross_lons[0:num_cross] = lat_eq["longitude"].values[0:num_cross]
         eq_cross_times[0:num_cross] = lat_eq["acq_time"].values[0:num_cross]
         return eq_cross_lons, eq_cross_times
+
+
+class MetadataEnhancer:
+    """Enhance metadata of level 1c files.
+
+    Additional metadata include global quality flags as well equator crossing time and
+    overlap information.
+    """
+
+    def __init__(self, min_num_lines=50, min_duration=5):
+        """
+        Args:
+            min_num_lines: Minimum number of scanlines for a file to be considered ok. Otherwise
+                           it will flagged as too short.
+            min_duration: Minimum duration (in minutes) for a file to be considered ok. Otherwise
+                          it will flagged as too short.
+        """
+        self.min_num_lines = min_num_lines
+        self.min_duration = np.timedelta64(min_duration, "m")
+
+    def enhance_metadata(self, df):
+        """Complement metadata from level 1c files."""
+        df.sort_values(by=["start_time", "end_time"], inplace=True)
+
+        # Set quality flags
+        LOG.info("Computing quality flags")
+        df = df.groupby("platform", as_index=True).apply(
+            lambda x: self._set_global_qual_flags(x, x.name)
+        )
+        df = df.drop(["platform"], axis=1)
+
+        # Calculate overlap
+        LOG.info("Computing overlap")
+        df = df.groupby("platform").apply(lambda x: self._calc_overlap(x))
+
+        return df
 
     def _set_redundant_flag(self, df, window=20):
         """Flag redundant files in the given data frame.
@@ -411,6 +395,26 @@ class MetadataCollector:
                 df.loc[df_ok.index[i], "overlap_free_end"] = this_row["along_track"] - 1
 
         return df
+
+
+def save_metadata_to_database(mda, dbfile, if_exists):
+    """Save metadata to sqlite database."""
+    con = sqlite3.connect(dbfile)
+    mda.to_sql(name="metadata", con=con, if_exists=if_exists)
+    con.commit()
+    con.close()
+
+
+def read_metadata_from_database(dbfile):
+    """Read metadata from sqlite database."""
+    with sqlite3.connect(dbfile) as con:
+        mda = pd.read_sql("select * from metadata", con)
+    mda = mda.set_index(["platform", "index"])
+    mda.fillna(value=np.nan, inplace=True)
+    for col in mda.columns:
+        if "time" in col:
+            mda[col] = mda[col].astype("datetime64[ns]")
+    return mda
 
 
 class MetadataUpdater:
