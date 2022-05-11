@@ -216,19 +216,29 @@ class MetadataEnhancer:
 
     def enhance_metadata(self, df):
         """Complement metadata from level 1c files."""
+        self._sort_by_ascending_time(df)
+        df = self._set_global_quality_flag(df)
+        df = self._calc_overlap(df)
+        return df
+
+    def _sort_by_ascending_time(self, df):
         df.sort_values(by=["start_time", "end_time"], inplace=True)
 
-        # Set quality flags
+    def _set_global_quality_flag(self, df):
         LOG.info("Computing quality flags")
-        df = df.groupby("platform", as_index=True).apply(
-            lambda x: self._set_global_qual_flags(x, x.name)
+        grouped = df.groupby("platform", as_index=False)
+        return grouped.apply(
+            lambda x: self._set_global_qual_flags_single_platform(x, x.name)
         )
-        df = df.drop(["platform"], axis=1)
 
-        # Calculate overlap
-        LOG.info("Computing overlap")
-        df = df.groupby("platform").apply(lambda x: self._calc_overlap(x))
-
+    def _set_global_qual_flags_single_platform(self, df, platform):
+        """Set global quality flags."""
+        df = df.reset_index(drop=True)
+        self._set_invalid_timestamp_flag(df, platform)
+        self._set_too_short_flag(df)
+        self._set_too_long_flag(df)
+        self._set_duplicate_flag(df)
+        self._set_redundant_flag(df)
         return df
 
     def _set_redundant_flag(self, df, window=20):
@@ -342,17 +352,12 @@ class MetadataEnhancer:
         too_long = (df["end_time"] - df["start_time"]) > max_length
         df.loc[too_long, "global_quality_flag"] = QualityFlags.TOO_LONG
 
-    def _set_global_qual_flags(self, df, platform):
-        """Set global quality flags."""
-        df = df.reset_index(drop=True)
-        self._set_invalid_timestamp_flag(df, platform)
-        self._set_too_short_flag(df)
-        self._set_too_long_flag(df)
-        self._set_duplicate_flag(df)
-        self._set_redundant_flag(df)
-        return df
+    def _calc_overlap(self, df):
+        LOG.info("Computing overlap")
+        grouped = df.groupby("platform", as_index=False)
+        return grouped.apply(lambda x: self._calc_overlap_single_platform(x))
 
-    def _calc_overlap(self, df, open_end=False):
+    def _calc_overlap_single_platform(self, df, open_end=False):
         """Compare timestamps of neighbouring files and determine overlap.
 
         For each file compare its timestamps with the start/end timestamps of the preceding and

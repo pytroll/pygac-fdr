@@ -376,7 +376,7 @@ class TestMetadataEnhancer:
 
         # Check overlap computation (closed end)
         enhancer = MetadataEnhancer()
-        mda_overlap = enhancer._calc_overlap(mda.copy())
+        mda_overlap = enhancer._calc_overlap_single_platform(mda.copy())
         pd.testing.assert_series_equal(
             mda_overlap["overlap_free_start"],
             mda_overlap["overlap_free_start_exp"],
@@ -389,7 +389,9 @@ class TestMetadataEnhancer:
         )
 
         # Open end
-        mda_overlap_open_end = enhancer._calc_overlap(mda.copy(), open_end=True)
+        mda_overlap_open_end = enhancer._calc_overlap_single_platform(
+            mda.copy(), open_end=True
+        )
         np.testing.assert_equal(
             mda_overlap_open_end.iloc[-1]["overlap_free_end"], np.nan
         )
