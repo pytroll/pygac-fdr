@@ -16,14 +16,13 @@
 # You should have received a copy of the GNU General Public License along with
 # pygac-fdr. If not, see <http://www.gnu.org/licenses/>.
 
-import unittest
 from unittest import mock
 
 import numpy as np
 import pandas as pd
 import xarray as xr
 
-from pygac_fdr.metadata import MetadataCollector, QualityFlags
+from pygac_fdr.metadata import MetadataCollector, MetadataEnhancer, QualityFlags
 
 
 def open_dataset_patched(filename):
@@ -63,8 +62,127 @@ def open_dataset_patched(filename):
     return times.get(filename, xr.Dataset({"acq_time": [0]}))
 
 
-class MetadataCollectorTest(unittest.TestCase):
-    def get_mda(self, multi_platform=False):
+class TestMetadataCollector:
+    def test_get_midnight_line(self):
+        acq_time = xr.DataArray(
+            [
+                np.datetime64("2009-12-31 23:58:00"),
+                np.datetime64("2009-12-31 23:59:00"),
+                np.datetime64("2010-01-01 00:00:01"),
+                np.datetime64("2010-01-01 00:01:00"),
+            ]
+        )
+        collector = MetadataCollector()
+        midn_line = collector._get_midnight_line(acq_time)
+        assert midn_line == 1
+
+        # No date switch
+        acq_time = xr.DataArray(
+            [
+                np.datetime64("2010-01-01 00:00:01"),
+                np.datetime64("2010-01-01 00:01:00"),
+                np.datetime64("2010-01-01 00:02:00"),
+            ]
+        )
+        np.testing.assert_equal(collector._get_midnight_line(acq_time), np.nan)
+
+    def test_get_equator_crossings(self):
+        collector = MetadataCollector()
+
+        # No equator crossing
+        ds = xr.Dataset(
+            coords={
+                "latitude": (
+                    ("y", "x"),
+                    [[999, 5.0, 999], [999, 0.1, 999], [999, -5.0, 999]],
+                ),
+                "longitude": (
+                    ("y", "x"),
+                    [[999, 1.0, 999], [999, 2.0, 999], [999, 3.0, 999]],
+                ),
+                "acq_time": ("y", np.arange(3).astype("datetime64[s]")),
+            }
+        )
+        lons, times = collector._get_equator_crossings(ds)
+        np.testing.assert_equal(lons, [np.nan, np.nan])
+        assert np.all(np.isnat(times))
+
+        # One equator crossing
+        ds = xr.Dataset(
+            coords={
+                "latitude": (
+                    ("y", "x"),
+                    [
+                        [999, 5.0, 999],
+                        [999, 0.1, 999],
+                        [999, -5.0, 999],
+                        [999, 0.1, 999],
+                        [999, 5.0, 999],
+                    ],
+                ),
+                "longitude": (
+                    ("y", "x"),
+                    [
+                        [999, 1.0, 999],
+                        [999, 2.0, 999],
+                        [999, 3.0, 999],
+                        [999, 4.0, 999],
+                        [999, 5.0, 999],
+                    ],
+                ),
+                "acq_time": ("y", np.arange(5).astype("datetime64[s]")),
+            }
+        )
+        ds["acq_time"].attrs["coords"] = "latitude longitude"
+        lons, times = collector._get_equator_crossings(ds)
+        np.testing.assert_equal(lons, [3, np.nan])
+        np.testing.assert_equal(
+            times, [np.datetime64("1970-01-01 00:00:02"), np.datetime64("NaT")]
+        )
+
+        # More than two equator crossings
+        ds = xr.Dataset(
+            coords={
+                "latitude": (
+                    ("y", "x"),
+                    [
+                        [999, -1, 999],
+                        [999, 1, 999],
+                        [999, -1, 999],
+                        [999, 1, 999],
+                        [999, -1, 999],
+                        [999, 1, 999],
+                    ],
+                ),
+                "longitude": (
+                    ("y", "x"),
+                    [
+                        [999, 1.0, 999],
+                        [999, 2.0, 999],
+                        [999, 3.0, 999],
+                        [999, 4.0, 999],
+                        [999, 5.0, 999],
+                        [999, 6.0, 999],
+                    ],
+                ),
+                "acq_time": ("y", np.arange(6).astype("datetime64[s]")),
+            }
+        )
+        ds["acq_time"].attrs["coords"] = "latitude longitude"
+        collector = MetadataCollector()
+        lons, times = collector._get_equator_crossings(ds)
+        np.testing.assert_equal(lons, [1, 3])
+        np.testing.assert_equal(
+            times,
+            [
+                np.datetime64("1970-01-01 00:00:00"),
+                np.datetime64("1970-01-01 00:00:02"),
+            ],
+        )
+
+
+class TestMetadataEnhancer:
+    def get_mda(self, multi_platform=False, reverse=False):
         mda = [
             {
                 "platform": "NOAA-16",
@@ -243,17 +361,10 @@ class MetadataCollectorTest(unittest.TestCase):
                 rec["platform"] = "NOAA-17"
             mda = mda + noaa17
 
-        return pd.DataFrame(mda)
-
-    def test_set_global_qual_flags(self):
-        mda = self.get_mda(multi_platform=False)
-        collector = MetadataCollector()
-        mda_qc = collector._set_global_qual_flags(mda, platform="NOAA-16")
-        pd.testing.assert_series_equal(
-            mda_qc["global_quality_flag"],
-            mda_qc["global_quality_flag_exp"],
-            check_names=False,
-        )
+        df = pd.DataFrame(mda)
+        if reverse:
+            df = df.sort_values(by=["start_time", "end_time"], ascending=False)
+        return df
 
     @mock.patch("pygac_fdr.metadata.xr.open_dataset")
     def test_calc_overlap(self, open_dataset):
@@ -264,8 +375,8 @@ class MetadataCollectorTest(unittest.TestCase):
         mda.loc[:, "global_quality_flag"] = mda["global_quality_flag_exp"]
 
         # Check overlap computation (closed end)
-        collector = MetadataCollector()
-        mda_overlap = collector._calc_overlap(mda.copy())
+        enhancer = MetadataEnhancer()
+        mda_overlap = enhancer._calc_overlap_single_platform(mda.copy())
         pd.testing.assert_series_equal(
             mda_overlap["overlap_free_start"],
             mda_overlap["overlap_free_start_exp"],
@@ -278,21 +389,19 @@ class MetadataCollectorTest(unittest.TestCase):
         )
 
         # Open end
-        mda_overlap_open_end = collector._calc_overlap(mda.copy(), open_end=True)
+        mda_overlap_open_end = enhancer._calc_overlap_single_platform(
+            mda.copy(), open_end=True
+        )
         np.testing.assert_equal(
             mda_overlap_open_end.iloc[-1]["overlap_free_end"], np.nan
         )
 
     @mock.patch("pygac_fdr.metadata.xr.open_dataset")
-    @mock.patch("pygac_fdr.metadata.MetadataCollector._collect_metadata")
-    def test_get_metadata(self, _collect_metadata, open_dataset):
-        _collect_metadata.return_value = self.get_mda(multi_platform=True).sort_values(
-            by=["start_time", "end_time"], ascending=False
-        )
+    def test_enhance_metadata(self, open_dataset):
         open_dataset.side_effect = open_dataset_patched
-
-        collector = MetadataCollector()
-        mda = collector.get_metadata("my_filenames")
+        mda = self.get_mda(multi_platform=True, reverse=True)
+        enhancer = MetadataEnhancer()
+        mda = enhancer.enhance_metadata(mda)
 
         pd.testing.assert_series_equal(
             mda["global_quality_flag"],
@@ -304,121 +413,4 @@ class MetadataCollectorTest(unittest.TestCase):
         )
         pd.testing.assert_series_equal(
             mda["overlap_free_end"], mda["overlap_free_end_exp"], check_names=False
-        )
-
-    def test_get_midnight_line(self):
-        acq_time = xr.DataArray(
-            [
-                np.datetime64("2009-12-31 23:58:00"),
-                np.datetime64("2009-12-31 23:59:00"),
-                np.datetime64("2010-01-01 00:00:01"),
-                np.datetime64("2010-01-01 00:01:00"),
-            ]
-        )
-        collector = MetadataCollector()
-        midn_line = collector._get_midnight_line(acq_time)
-        self.assertEqual(midn_line, 1)
-
-        # No date switch
-        acq_time = xr.DataArray(
-            [
-                np.datetime64("2010-01-01 00:00:01"),
-                np.datetime64("2010-01-01 00:01:00"),
-                np.datetime64("2010-01-01 00:02:00"),
-            ]
-        )
-        np.testing.assert_equal(collector._get_midnight_line(acq_time), np.nan)
-
-    def test_get_equator_crossings(self):
-        collector = MetadataCollector()
-
-        # No equator crossing
-        ds = xr.Dataset(
-            coords={
-                "latitude": (
-                    ("y", "x"),
-                    [[999, 5.0, 999], [999, 0.1, 999], [999, -5.0, 999]],
-                ),
-                "longitude": (
-                    ("y", "x"),
-                    [[999, 1.0, 999], [999, 2.0, 999], [999, 3.0, 999]],
-                ),
-                "acq_time": ("y", np.arange(3).astype("datetime64[s]")),
-            }
-        )
-        lons, times = collector._get_equator_crossings(ds)
-        np.testing.assert_equal(lons, [np.nan, np.nan])
-        self.assertTrue(np.all(np.isnat(times)))
-
-        # One equator crossing
-        ds = xr.Dataset(
-            coords={
-                "latitude": (
-                    ("y", "x"),
-                    [
-                        [999, 5.0, 999],
-                        [999, 0.1, 999],
-                        [999, -5.0, 999],
-                        [999, 0.1, 999],
-                        [999, 5.0, 999],
-                    ],
-                ),
-                "longitude": (
-                    ("y", "x"),
-                    [
-                        [999, 1.0, 999],
-                        [999, 2.0, 999],
-                        [999, 3.0, 999],
-                        [999, 4.0, 999],
-                        [999, 5.0, 999],
-                    ],
-                ),
-                "acq_time": ("y", np.arange(5).astype("datetime64[s]")),
-            }
-        )
-        ds["acq_time"].attrs["coords"] = "latitude longitude"
-        lons, times = collector._get_equator_crossings(ds)
-        np.testing.assert_equal(lons, [3, np.nan])
-        np.testing.assert_equal(
-            times, [np.datetime64("1970-01-01 00:00:02"), np.datetime64("NaT")]
-        )
-
-        # More than two equator crossings
-        ds = xr.Dataset(
-            coords={
-                "latitude": (
-                    ("y", "x"),
-                    [
-                        [999, -1, 999],
-                        [999, 1, 999],
-                        [999, -1, 999],
-                        [999, 1, 999],
-                        [999, -1, 999],
-                        [999, 1, 999],
-                    ],
-                ),
-                "longitude": (
-                    ("y", "x"),
-                    [
-                        [999, 1.0, 999],
-                        [999, 2.0, 999],
-                        [999, 3.0, 999],
-                        [999, 4.0, 999],
-                        [999, 5.0, 999],
-                        [999, 6.0, 999],
-                    ],
-                ),
-                "acq_time": ("y", np.arange(6).astype("datetime64[s]")),
-            }
-        )
-        ds["acq_time"].attrs["coords"] = "latitude longitude"
-        collector = MetadataCollector()
-        lons, times = collector._get_equator_crossings(ds)
-        np.testing.assert_equal(lons, [1, 3])
-        np.testing.assert_equal(
-            times,
-            [
-                np.datetime64("1970-01-01 00:00:00"),
-                np.datetime64("1970-01-01 00:00:02"),
-            ],
         )
