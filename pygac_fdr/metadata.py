@@ -355,7 +355,7 @@ class MetadataEnhancer:
     def _calc_overlap(self, df):
         LOG.info("Computing overlap")
         grouped = df.groupby("platform", as_index=False)
-        return grouped.apply(lambda x: self._calc_overlap_single_platform(x))
+        return grouped.apply(self._calc_overlap_single_platform)
 
     def _calc_overlap_single_platform(self, df, open_end=False):
         """Compare timestamps of neighbouring files and determine overlap.
