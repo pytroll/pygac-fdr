@@ -20,9 +20,16 @@ from unittest import mock
 
 import numpy as np
 import pandas as pd
+import pytest
 import xarray as xr
 
-from pygac_fdr.metadata import MetadataCollector, MetadataEnhancer, QualityFlags
+from pygac_fdr.metadata import (
+    MetadataCollector,
+    MetadataEnhancer,
+    QualityFlags,
+    read_metadata_from_database,
+    save_metadata_to_database,
+)
 
 
 def open_dataset_patched(filename):
@@ -414,3 +421,32 @@ class TestMetadataEnhancer:
         pd.testing.assert_series_equal(
             mda["overlap_free_end"], mda["overlap_free_end_exp"], check_names=False
         )
+
+
+class TestReadMetadata:
+    @pytest.fixture(params=[["METOP-A"], ["METOP-A", "NOAA-16"]])
+    def platforms(self, request):
+        return request.param
+
+    @pytest.fixture
+    def metadata(self, platforms):
+        mda = []
+        for ip, platform in enumerate(platforms):
+            mda.append(
+                {"platform_index": ip, "file_index": 0, "platform": platform, "foo": 1}
+            )
+            mda.append(
+                {"platform_index": ip, "file_index": 1, "platform": platform, "foo": 2}
+            )
+        df = pd.DataFrame(mda)
+        return df.set_index(["platform_index", "file_index"], drop=True)
+
+    @pytest.fixture
+    def database(self, metadata, tmp_path):
+        dbfile = tmp_path / "test.sqlite3"
+        save_metadata_to_database(metadata, dbfile, "replace")
+        return dbfile
+
+    def test_read_metadata_from_database(self, database, metadata):
+        res = read_metadata_from_database(database)
+        pd.testing.assert_frame_equal(res, metadata)
