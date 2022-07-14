@@ -219,6 +219,7 @@ class MetadataEnhancer:
         self._sort_by_ascending_time(df)
         df = self._set_global_quality_flag(df)
         df = self._calc_overlap(df)
+        df = self._update_index(df)
         return df
 
     def _sort_by_ascending_time(self, df):
@@ -401,6 +402,25 @@ class MetadataEnhancer:
 
         return df
 
+    def _update_index(self, df):
+        df = self._make_multi_index(df)
+        self._rename_multi_index(df)
+        return df
+
+    def _make_multi_index(self, df):
+        if not isinstance(df.index, pd.MultiIndex):
+            df = self._make_multi_index_single_platform(df)
+        return df
+
+    def _make_multi_index_single_platform(self, df):
+        num_rec = len(df)
+        platform_index = pd.Series([0] * num_rec)
+        file_index = pd.Series(range(num_rec))
+        return df.set_index([platform_index, file_index])
+
+    def _rename_multi_index(self, df):
+        df.index.names = ["platform_index", "file_index"]
+
 
 def save_metadata_to_database(mda, dbfile, if_exists):
     """Save metadata to sqlite database."""
@@ -414,12 +434,20 @@ def read_metadata_from_database(dbfile):
     """Read metadata from sqlite database."""
     with sqlite3.connect(dbfile) as con:
         mda = pd.read_sql("select * from metadata", con)
-    mda = mda.set_index(["platform", "index"])
+    mda = _restore_multi_index(mda)
     mda.fillna(value=np.nan, inplace=True)
+    _cast_time_columns_to_datetime(mda)
+    return mda
+
+
+def _restore_multi_index(mda):
+    return mda.set_index(["platform_index", "file_index"])
+
+
+def _cast_time_columns_to_datetime(mda):
     for col in mda.columns:
         if "time" in col:
             mda[col] = mda[col].astype("datetime64[ns]")
-    return mda
 
 
 class MetadataUpdater:
