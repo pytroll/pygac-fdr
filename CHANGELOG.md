@@ -1,3 +1,21 @@
+## Version 0.2.1 (2022/09/26)
+
+### Issues Closed
+
+* [Issue 74](https://github.com/pytroll/pygac-fdr/issues/74) - System tests on Python 3.7 failed
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+* [PR 103](https://github.com/pytroll/pygac-fdr/pull/103) - Fix metadata I/O, by [@sfinkens](https://github.com/sfinkens)
+* [PR 102](https://github.com/pytroll/pygac-fdr/pull/102) - Fix grouping metadata by platform, by [@sfinkens](https://github.com/sfinkens)
+* [PR 100](https://github.com/pytroll/pygac-fdr/pull/100) - Update end-to-end test triggers, by [@sfinkens](https://github.com/sfinkens)
+* [PR 98](https://github.com/pytroll/pygac-fdr/pull/98) - Refactor netcdf writer, by [@sfinkens](https://github.com/sfinkens)
+* [PR 95](https://github.com/pytroll/pygac-fdr/pull/95) - Add DOI badge to README, by [@sfinkens](https://github.com/sfinkens)
+
+In this release 5 pull requests were closed.
+
 ## Version 0.2.0 (2021/12/06)
 
 ### Issues Closed
