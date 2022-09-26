@@ -8,13 +8,15 @@ In this release 1 issue was closed.
 
 ### Pull Requests Merged
 
+* [PR 104](https://github.com/pytroll/pygac-fdr/pull/104) - Go back to Satpy<0.37, by [@sfinkens](https://github.com/sfinkens)
 * [PR 103](https://github.com/pytroll/pygac-fdr/pull/103) - Fix metadata I/O, by [@sfinkens](https://github.com/sfinkens)
 * [PR 102](https://github.com/pytroll/pygac-fdr/pull/102) - Fix grouping metadata by platform, by [@sfinkens](https://github.com/sfinkens)
 * [PR 100](https://github.com/pytroll/pygac-fdr/pull/100) - Update end-to-end test triggers, by [@sfinkens](https://github.com/sfinkens)
 * [PR 98](https://github.com/pytroll/pygac-fdr/pull/98) - Refactor netcdf writer, by [@sfinkens](https://github.com/sfinkens)
 * [PR 95](https://github.com/pytroll/pygac-fdr/pull/95) - Add DOI badge to README, by [@sfinkens](https://github.com/sfinkens)
 
-In this release 5 pull requests were closed.
+In this release 6 pull requests were closed.
+
 
 ## Version 0.2.0 (2021/12/06)
 
