@@ -66,15 +66,18 @@ class TestNetcdfWriter:
         lats = [[1, 2], [3, 4]]
         return lons, lats
 
+    @pytest.fixture(params=[True, False])
+    def with_orbital_parameters(self, request):
+        return request.param
+
     @pytest.fixture
-    def scene_dataset_attrs(self, scene_lonlats):
+    def scene_dataset_attrs(self, scene_lonlats, with_orbital_parameters):
         lons, lats = scene_lonlats
-        return {
+        attrs = {
             "platform_name": "noaa15",
             "sensor": "avhrr-1",
             "sun_earth_distance_correction_factor": 0.9,
             "calib_coeffs_version": "patmos-x 2012",
-            "orbital_parameters": {"tle": "my_tle"},
             "long_name": "my_long_name",
             "units": "my_units",
             "standard_name": "my_standard_name",
@@ -83,6 +86,9 @@ class TestNetcdfWriter:
             "start_time": dt.datetime(2000, 1, 1),
             "end_time": dt.datetime(2000, 1, 1),
         }
+        if with_orbital_parameters:
+            attrs["orbital_parameters"] = {"tle": "my_tle"}
+        return attrs
 
     @pytest.fixture
     def scene(self, scene_dataset_attrs, scene_lonlats):
@@ -132,7 +138,35 @@ class TestNetcdfWriter:
         return scene
 
     @pytest.fixture
-    def expected(self):
+    def attrs_exp(self, with_orbital_parameters):
+        attrs = {
+            "author": "Turtles",
+            "end_time": "19700101T000001Z",
+            "geospatial_lat_max": 4,
+            "geospatial_lat_min": 1,
+            "geospatial_lat_resolution": "1234.0 meters",
+            "geospatial_lat_units": "degrees_north",
+            "geospatial_lon_max": 8,
+            "geospatial_lon_min": 5,
+            "geospatial_lon_resolution": "1234.0 meters",
+            "geospatial_lon_units": "degrees_east",
+            "instrument": "Earth Remote Sensing Instruments > Passive Remote Sensing > "
+            "Spectrometers/Radiometers > Imaging Spectrometers/Radiometers "
+            "> AVHRR-1",
+            "platform": "Earth Observation Satellites > NOAA POES > NOAA-15",
+            "start_time": "19700101T000000Z",
+            "sun_earth_distance_correction_factor": 0.9,
+            "time_coverage_start": "19981026T005400Z",
+            "version_calib_coeffs": "patmos-x 2012",
+            "Conventions": "CF-1.8",
+            "product_version": "1.2.3",
+        }
+        if with_orbital_parameters:
+            attrs["orbital_parameters_tle"] = "my_tle"
+        return attrs
+
+    @pytest.fixture
+    def expected(self, attrs_exp):
         acq_time = xr.DataArray(
             np.array([0, 1], dtype="datetime64[s]"),
             dims="y",
@@ -200,31 +234,10 @@ class TestNetcdfWriter:
                 "meanings.",
             },
         )
+
         return xr.Dataset(
             {"brightness_temperature_channel_4": bt_ch4, "qual_flags": qual_flags},
-            attrs={
-                "author": "Turtles",
-                "end_time": "19700101T000001Z",
-                "geospatial_lat_max": 4,
-                "geospatial_lat_min": 1,
-                "geospatial_lat_resolution": "1234.0 meters",
-                "geospatial_lat_units": "degrees_north",
-                "geospatial_lon_max": 8,
-                "geospatial_lon_min": 5,
-                "geospatial_lon_resolution": "1234.0 meters",
-                "geospatial_lon_units": "degrees_east",
-                "instrument": "Earth Remote Sensing Instruments > Passive Remote Sensing > "
-                "Spectrometers/Radiometers > Imaging Spectrometers/Radiometers "
-                "> AVHRR-1",
-                "orbital_parameters_tle": "my_tle",
-                "platform": "Earth Observation Satellites > NOAA POES > NOAA-15",
-                "start_time": "19700101T000000Z",
-                "sun_earth_distance_correction_factor": 0.9,
-                "time_coverage_start": "19981026T005400Z",
-                "version_calib_coeffs": "patmos-x 2012",
-                "Conventions": "CF-1.8",
-                "product_version": "1.2.3",
-            },
+            attrs=attrs_exp,
         )
 
     @pytest.fixture

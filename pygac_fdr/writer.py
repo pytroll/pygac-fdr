@@ -493,7 +493,7 @@ class GlobalAttributeComposer:
             "geospatial_lon_resolution": "{} meters".format(resol),
             "geospatial_lat_resolution": "{} meters".format(resol),
             "time_coverage_start": time_cov_start.strftime(TIME_FMT),
-            "orbital_parameters": ch_attrs["orbital_parameters"],
+            "orbital_parameters": ch_attrs.get("orbital_parameters", {}),
         }
         if time_cov_end:  # Otherwise still operational
             global_attrs["time_coverage_end"] = time_cov_end.strftime(TIME_FMT)
