@@ -39,7 +39,7 @@ if __name__ == "__main__":
         "netCDF4",
         "h5py",
         "pygac >=1.3.1",
-        "satpy <0.37.0",
+        "satpy",
         "pyyaml",
         "trollsift",
         "fsspec",
