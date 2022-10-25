@@ -10,7 +10,7 @@ dependencies:
   - xarray
   - netcdf4
   - h5py
-  - satpy<0.37
+  - satpy
   - pyyaml
   - pytest
   - pytest-cov
