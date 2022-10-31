@@ -77,5 +77,5 @@ if __name__ == "__main__":
         scripts=[os.path.join("bin", item) for item in os.listdir("bin")],
         install_requires=requires,
         extras_require=extras_require,
-        python_requires=">=3.6",
+        python_requires=">=3.8",
     )
