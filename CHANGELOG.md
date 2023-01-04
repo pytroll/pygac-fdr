@@ -1,3 +1,19 @@
+## Version 0.2.2 (2023/01/04)
+
+### Issues Closed
+
+* [Issue 106](https://github.com/pytroll/pygac-fdr/issues/106) - Update test matrix to Python-3.8/3.9 ([PR 108](https://github.com/pytroll/pygac-fdr/pull/108) by [@sfinkens](https://github.com/sfinkens))
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+* [PR 108](https://github.com/pytroll/pygac-fdr/pull/108) - Update test matrix to Python 3.8 and 3.9, by [@sfinkens](https://github.com/sfinkens) ([106](https://github.com/pytroll/pygac-fdr/issues/106))
+* [PR 107](https://github.com/pytroll/pygac-fdr/pull/107) - Fix writer crashing on missing orbital parameters, by [@sfinkens](https://github.com/sfinkens)
+
+In this release 2 pull requests were closed.
+
+
 ## Version 0.2.1 (2022/09/26)
 
 ### Issues Closed
