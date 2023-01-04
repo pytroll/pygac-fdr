@@ -289,12 +289,12 @@ class MetadataEnhancer:
         #    function. This can be achieved by calling apply(..., raw=False).
         df_ok = df_ok.set_index("start_time", append=True)
         rolling = df_ok["end_time"].rolling(window, min_periods=2)
-        redundant = rolling.apply(is_redundant, raw=False).fillna(0).astype(np.bool)
+        redundant = rolling.apply(is_redundant, raw=False).fillna(0).astype(bool)
         redundant = redundant.reset_index("start_time", drop=True)
 
         # So far we have operated on the qc-passed rows only. Update quality flags of rows in the
         # original (full) data frame.
-        redundant = redundant[redundant.astype(np.bool)]
+        redundant = redundant[redundant.astype(bool)]
         df.loc[redundant.index, "global_quality_flag"] = QualityFlags.REDUNDANT
 
     def _set_duplicate_flag(self, df):
