@@ -357,25 +357,8 @@ class NetcdfWriter:
 
     def _get_encoding(self, scene):
         """Get netCDF encoding for the datasets in the scene."""
-        # Remove entries from the encoding dictionary if the corresponding dataset is not available.
-        # The CF writer doesn't like that.
-        enc_keys = set(self.encoding.keys())
-        scn_keys = set([key["name"] for key in scene.keys()])
-        scn_keys = scn_keys.union(
-            set([coord for key in scene.keys() for coord in scene[key].coords])
-        )
-        encoding = dict(
-            [(key, self.encoding[key]) for key in enc_keys.intersection(scn_keys)]
-        )
-
-        # Make sure scale_factor and add_offset are both double
-        for enc in encoding.values():
-            if "scale_factor" in enc:
-                enc["scale_factor"] = np.float64(enc["scale_factor"])
-            if "add_offset" in enc:
-                enc["add_offset"] = np.float64(enc["add_offset"])
-
-        return encoding
+        enc = SceneEncoder(self.encoding)
+        return enc.get_encoding(scene)
 
     def _fix_global_attrs(self, filename, global_attrs):
         LOG.info("Fixing global attributes")
@@ -439,6 +422,39 @@ class NetcdfWriter:
     def _postproc_file(self, filename, gac_header, global_attrs):
         self._append_gac_header(filename, gac_header)
         self._fix_global_attrs(filename, global_attrs)
+
+
+class SceneEncoder:
+    def __init__(self, encoding):
+        self.encoding = encoding
+
+    def get_encoding(self, scene):
+        enc = self._get_encoding_for_available_datasets(scene)
+        self._fix_dtypes(enc)
+        return enc
+
+    def _get_encoding_for_available_datasets(self, scene):
+        common_keys = self._get_keys_in_both_scene_and_encoding(scene)
+        return dict([(key, self.encoding[key]) for key in common_keys])
+
+    def _get_keys_in_both_scene_and_encoding(self, scene):
+        scn_keys = self._get_scene_keys(scene)
+        enc_keys = set(self.encoding.keys())
+        return enc_keys.intersection(scn_keys)
+
+    def _get_scene_keys(self, scene):
+        dataset_keys = set([key["name"] for key in scene.keys()])
+        coords_keys = set(
+            [coord for key in scene.keys() for coord in scene[key].coords]
+        )
+        return dataset_keys.union(coords_keys)
+
+    def _fix_dtypes(self, encoding):
+        for enc in encoding.values():
+            if "scale_factor" in enc:
+                enc["scale_factor"] = np.float64(enc["scale_factor"])
+            if "add_offset" in enc:
+                enc["add_offset"] = np.float64(enc["add_offset"])
 
 
 class GlobalAttributeComposer:
