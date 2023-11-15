@@ -360,7 +360,7 @@ class NetcdfWriter:
         # Remove entries from the encoding dictionary if the corresponding dataset is not available.
         # The CF writer doesn't like that.
         enc_keys = set(self.encoding.keys())
-        scn_keys = set([key.name for key in scene.keys()])
+        scn_keys = set([key["name"] for key in scene.keys()])
         scn_keys = scn_keys.union(
             set([coord for key in scene.keys() for coord in scene[key].coords])
         )
