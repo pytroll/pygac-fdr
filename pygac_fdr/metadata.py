@@ -227,7 +227,7 @@ class MetadataEnhancer:
 
     def _set_global_quality_flag(self, df):
         LOG.info("Computing quality flags")
-        grouped = df.groupby("platform", as_index=False)
+        grouped = df.groupby("platform", as_index=False, group_keys=False)
         return grouped.apply(
             lambda x: self._set_global_qual_flags_single_platform(x, x.name)
         )
@@ -355,7 +355,7 @@ class MetadataEnhancer:
 
     def _calc_overlap(self, df):
         LOG.info("Computing overlap")
-        grouped = df.groupby("platform", as_index=False)
+        grouped = df.groupby("platform", as_index=False, group_keys=False)
         return grouped.apply(self._calc_overlap_single_platform)
 
     def _calc_overlap_single_platform(self, df, open_end=False):
