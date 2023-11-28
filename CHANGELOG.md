@@ -1,3 +1,25 @@
+## Version <0.2.3> (2023/11/28)
+
+### Issues Closed
+
+* [Issue 110](https://github.com/pytroll/pygac-fdr/issues/110) - DataID name property issue when processing AVHRR tarball ([PR 111](https://github.com/pytroll/pygac-fdr/pull/111) by [@sfinkens](https://github.com/sfinkens))
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+* [PR 118](https://github.com/pytroll/pygac-fdr/pull/118) - Drop Python-3.9 support, by [@sfinkens](https://github.com/sfinkens)
+* [PR 117](https://github.com/pytroll/pygac-fdr/pull/117) - Bump conda-incubator/setup-miniconda from 2 to 3, by [@dependabot[bot]](https://github.com/apps/dependabot)
+* [PR 116](https://github.com/pytroll/pygac-fdr/pull/116) - Bump codecov/codecov-action from 2 to 3, by [@dependabot[bot]](https://github.com/apps/dependabot)
+* [PR 115](https://github.com/pytroll/pygac-fdr/pull/115) - Bump pypa/gh-action-pypi-publish from 1.4.1 to 1.8.10, by [@dependabot[bot]](https://github.com/apps/dependabot) ([](https://github.com/padding</issues/))
+* [PR 114](https://github.com/pytroll/pygac-fdr/pull/114) - Bump actions/checkout from 2 to 4, by [@dependabot[bot]](https://github.com/apps/dependabot)
+* [PR 113](https://github.com/pytroll/pygac-fdr/pull/113) - Enable dependabot for github-actions, by [@sfinkens](https://github.com/sfinkens)
+* [PR 112](https://github.com/pytroll/pygac-fdr/pull/112) - Drop Python-3.8 support, by [@sfinkens](https://github.com/sfinkens)
+* [PR 111](https://github.com/pytroll/pygac-fdr/pull/111) - Fix DataID access, by [@sfinkens](https://github.com/sfinkens) ([110](https://github.com/pytroll/pygac-fdr/issues/110))
+
+In this release 8 pull requests were closed.
+
+
 ## Version 0.2.2 (2023/01/04)
 
 ### Issues Closed
