@@ -60,7 +60,6 @@ DEFAULT_ENCODING = {
     "reflectance_channel_1": {
         "dtype": "int16",
         "scale_factor": 0.01,
-        "add_offset": 0,
         "_FillValue": FILL_VALUE_INT16,
         "zlib": True,
         "complevel": 4,
@@ -68,7 +67,6 @@ DEFAULT_ENCODING = {
     "reflectance_channel_2": {
         "dtype": "int16",
         "scale_factor": 0.01,
-        "add_offset": 0,
         "_FillValue": FILL_VALUE_INT16,
         "zlib": True,
         "complevel": 4,
@@ -84,7 +82,6 @@ DEFAULT_ENCODING = {
     "reflectance_channel_3a": {
         "dtype": "int16",
         "scale_factor": 0.01,
-        "add_offset": 0,
         "_FillValue": FILL_VALUE_INT16,
         "zlib": True,
         "complevel": 4,
@@ -116,7 +113,6 @@ DEFAULT_ENCODING = {
     "latitude": {
         "dtype": "int32",
         "scale_factor": 0.001,
-        "add_offset": 0,
         "_FillValue": FILL_VALUE_INT32,
         "zlib": True,
         "complevel": 4,
@@ -124,7 +120,6 @@ DEFAULT_ENCODING = {
     "longitude": {
         "dtype": "int32",
         "scale_factor": 0.001,
-        "add_offset": 0,
         "_FillValue": FILL_VALUE_INT32,
         "zlib": True,
         "complevel": 4,
@@ -132,7 +127,6 @@ DEFAULT_ENCODING = {
     "sensor_azimuth_angle": {
         "dtype": "int16",
         "scale_factor": 0.01,
-        "add_offset": 0.0,
         "_FillValue": FILL_VALUE_INT16,
         "zlib": True,
         "complevel": 4,
@@ -140,7 +134,6 @@ DEFAULT_ENCODING = {
     "sensor_zenith_angle": {
         "dtype": "int16",
         "scale_factor": 0.01,
-        "add_offset": 0,
         "_FillValue": FILL_VALUE_INT16,
         "zlib": True,
         "complevel": 4,
@@ -148,7 +141,6 @@ DEFAULT_ENCODING = {
     "solar_azimuth_angle": {
         "dtype": "int16",
         "scale_factor": 0.01,
-        "add_offset": 0.0,
         "_FillValue": FILL_VALUE_INT16,
         "zlib": True,
         "complevel": 4,
@@ -156,7 +148,6 @@ DEFAULT_ENCODING = {
     "solar_zenith_angle": {
         "dtype": "int16",
         "scale_factor": 0.01,
-        "add_offset": 0,
         "_FillValue": FILL_VALUE_INT16,
         "zlib": True,
         "complevel": 4,
@@ -164,7 +155,6 @@ DEFAULT_ENCODING = {
     "sun_sensor_azimuth_difference_angle": {
         "dtype": "int16",
         "scale_factor": 0.01,
-        "add_offset": 0,
         "_FillValue": FILL_VALUE_INT16,
         "zlib": True,
         "complevel": 4,
