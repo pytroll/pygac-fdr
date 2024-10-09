@@ -26,8 +26,8 @@ jobs:
         with:
           miniforge-version: latest
           python-version: ${{ matrix.python-version }}
+          environment-file: continuous_integration/environment.yaml
           activate-environment: test-environment
-          channels: conda-forge
       - name: Install pygac-fdr
         shell: bash -l {0}
         run: |
