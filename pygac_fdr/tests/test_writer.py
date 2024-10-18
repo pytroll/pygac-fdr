@@ -52,18 +52,17 @@ class NetcdfWriterTest(unittest.TestCase):
         }
         for ch, data in test_data.items():
             enc = DEFAULT_ENCODING[ch]
-            data_enc = ((data - enc["add_offset"]) / enc["scale_factor"]).astype(
-                enc["dtype"]
-            )
-            data_dec = data_enc * enc["scale_factor"] + enc["add_offset"]
+            offset = enc.get("add_offset", 0.0)
+            data_enc = ((data - offset) / enc["scale_factor"]).astype(enc["dtype"])
+            data_dec = data_enc * enc["scale_factor"] + offset
             np.testing.assert_allclose(data_dec, data, rtol=0.1)
 
 
 class TestNetcdfWriter:
     @pytest.fixture
     def scene_lonlats(self):
-        lons = [[5, 6], [7, 8]]
-        lats = [[1, 2], [3, 4]]
+        lons = [[5.0, 6.0], [7.0, 8.0]]
+        lats = [[1.0, 2.0], [3.0, 4.0]]
         return lons, lats
 
     @pytest.fixture(params=[True, False])
@@ -107,7 +106,7 @@ class TestNetcdfWriter:
         lat_id = make_dataid(name="latitude", resolution=1234.0, modifiers=())
         qual_flags_id = make_dataid(name="qual_flags", resolution=1234.0, modifiers=())
         scene[ch4_id] = xr.DataArray(
-            [[1, 2], [3, 4]],
+            [[1.0, 2.0], [3.0, 4.0]],
             dims=("y", "x"),
             coords={
                 "acq_time": ("y", acq_time),
