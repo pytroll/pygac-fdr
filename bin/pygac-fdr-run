@@ -26,7 +26,7 @@ import satpy
 from satpy.readers import FSFile
 
 from pygac_fdr.config import read_config
-from pygac_fdr.reader import read_gac
+from pygac_fdr.reader import read_gac, read_lac
 from pygac_fdr.utils import LOGGER_NAME, TarFileSystem, logging_on
 from pygac_fdr.writer import NetcdfWriter
 
@@ -44,9 +44,10 @@ class HideGzFSFile(FSFile):
 def process_file(filename, config):
     LOG.info("Processing file {}".format(filename))
     try:
-        scene = read_gac(
-            filename, reader_kwargs=config["controls"].get("reader_kwargs")
-        )
+        if config["controls"].get("lac"):
+            scene = read_lac(filename, reader_kwargs=config["controls"].get("reader_kwargs"))
+        else:
+            scene = read_gac(filename, reader_kwargs=config["controls"].get("reader_kwargs"))
         writer = NetcdfWriter(
             output_dir=config["output"].get("output_dir"),
             global_attrs=config.get("global_attrs"),
@@ -84,20 +85,15 @@ def process_tarball(tarball, config):
 
 if __name__ == "__main__":
     # Parse command line arguments
-    parser = argparse.ArgumentParser(
-        description="Read & calibrate AVHRR GAC data and write results to netCDF"
-    )
-    parser.add_argument(
-        "--cfg", required=True, type=str, help="Path to pygac-fdr configuration file."
-    )
+    parser = argparse.ArgumentParser(description="Read & calibrate AVHRR GAC data and write results to netCDF")
+    parser.add_argument("--cfg", required=True, type=str, help="Path to pygac-fdr configuration file.")
     parser.add_argument(
         "--output-dir",
         help="Output directory. Overrides entry in the configuration file.",
     )
     parser.add_argument(
         "--tle-dir",
-        help="Directory containing TLE files. Overrides entry in the configuration"
-        " file.",
+        help="Directory containing TLE files. Overrides entry in the configuration file.",
     )
     parser.add_argument(
         "--debug",
@@ -106,12 +102,10 @@ if __name__ == "__main__":
         "next file. Overrides entry in the configuration file.",
     )
     parser.add_argument("--verbose", action="store_true", help="Increase verbosity")
-    parser.add_argument(
-        "--log-all", action="store_true", help="Enable logging for all modules"
-    )
-    parser.add_argument(
-        "filenames", nargs="+", help="AVHRR GAC level 1b files to be processed"
-    )
+    parser.add_argument("--log-all", action="store_true", help="Enable logging for all modules")
+    parser.add_argument("filenames", nargs="+", help="AVHRR GAC level 1b files to be processed")
+    parser.add_argument("--lac", action="store_true", help="Files are processed as AVHRR LAC level 1b files")
+    parser.add_argument("--georef", type=str, help="Path to reference GeoTiff file for georeferencing")
     args = parser.parse_args()
     logging_on(logging.DEBUG if args.verbose else logging.INFO, for_all=args.log_all)
 
@@ -122,8 +116,12 @@ if __name__ == "__main__":
         config["output"]["output_dir"] = args.output_dir
     if args.tle_dir:
         config["controls"]["reader_kwargs"]["tle_dir"] = args.tle_dir
+    if args.georef:
+        config["controls"]["reader_kwargs"]["reference_image"] = args.georef
     if args.debug:
         config["controls"]["debug"] = args.debug
+    if args.lac:
+        config["controls"]["lac"] = True
 
     # Process files
     satpy.CHUNK_SIZE = config["controls"].get("pytroll_chunk_size", 1024)
