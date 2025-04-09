@@ -4,7 +4,6 @@ channels:
 dependencies:
   - udunits2
   - pip
-  - setuptools_scm
   - numpy
   - pandas
   - xarray
