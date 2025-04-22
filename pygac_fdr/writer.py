@@ -362,8 +362,8 @@ class NetcdfWriter:
                     nc.variables[var_name].delncattr(drop_attr)
 
     def _append_gac_header(self, filename, header):
-        """Append raw GAC header to the given netCDF file."""
-        LOG.info("Appending GAC header")
+        """Append raw GAC/LAC header to the given netCDF file."""
+        LOG.info("Appending GAC/LAC header")
         data_vars = dict([(name, header[name]) for name in header.dtype.names])
         header = xr.Dataset(data_vars, attrs=self.gac_header_attrs)
         header.to_netcdf(filename, mode="a", group="gac_header")

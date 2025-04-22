@@ -40,11 +40,11 @@ GAC_FORMAT = (
 )
 
 
-def read_lac(filename, reader_kwargs=None):
-    """Read and calibrate AVHRR LAC level 1b data using satpy.
+def read_file(filename, reader_kwargs=None):
+    """Read and calibrate AVHRR GAC/LAC level 1b data using satpy.
 
     Args:
-        filename (str): AVHRR LAC level 1b file
+        filename (str): AVHRR GAC/LAC level 1b file
         reader_kwargs (dict): Keyword arguments to be passed to the reader.
 
     Returns:
@@ -61,31 +61,14 @@ def read_lac(filename, reader_kwargs=None):
             "gac_filename": basename,
         }
     )
+    try:
+        fname_info = trollsift.parse(GAC_FORMAT, basename)
+    except ValueError:
+        return scene
 
-    return scene
-
-
-def read_gac(filename, reader_kwargs=None):
-    """Read and calibrate AVHRR GAC level 1b data using satpy.
-
-    Args:
-        filename (str): AVHRR GAC level 1b file
-        reader_kwargs (dict): Keyword arguments to be passed to the reader.
-
-    Returns:
-        The loaded data in a satpy.Scene object.
-    """
-    scene = satpy.Scene(filenames=[filename], reader="avhrr_l1b_gaclac", reader_kwargs=reader_kwargs)
-    scene.load(BANDS)
-    scene.load(AUX_DATA)
-
-    # Add additional metadata
-    basename = os.path.basename(filename)
-    fname_info = trollsift.parse(GAC_FORMAT, basename)
     orbit_number_end = fname_info["orbit_number"] // 100 * 100 + fname_info["end_orbit_last_digits"]
     scene.attrs.update(
         {
-            "gac_filename": basename,
             "orbit_number_start": fname_info["orbit_number"],
             "orbit_number_end": orbit_number_end,
             "ground_station": fname_info["station"],
