@@ -22,7 +22,7 @@ import logging
 import os
 import warnings
 from datetime import datetime
-from distutils.version import StrictVersion
+from packaging.version import Version
 from string import Formatter
 
 import netCDF4
@@ -286,7 +286,7 @@ class NetcdfWriter:
 
         Minor/patch versions > 9 are not supported.
         """
-        numbers = StrictVersion(version).version
+        numbers = Version(version).release
         if numbers[1] > 9 or numbers[2] > 9:
             raise ValueError(
                 "Invalid version number: {}. Minor/patch versions > 9 are not "
