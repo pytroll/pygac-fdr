@@ -64,7 +64,7 @@ def process_file(filename, config):
             overlay = None
             with suppress(KeyError):
                 overlay = {'coast_dir': image_config["coastlines_dir"], 'color': 'red'}
-            scn.save_dataset(composite, base_dir=config["output"].get("output_dir"), filename=image_config["fname_fmt"], overlay=overlay)
+            scn.save_dataset(composite, base_dir=config["output"].get("output_dir"), overlay=overlay)
     except Exception as err:
         if config["controls"]["debug"]:
             raise
