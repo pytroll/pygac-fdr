@@ -79,8 +79,7 @@ def process_tarball(tarball, config):
     else:
         LOG.info("Successfully processed all files in {}".format(tarball))
 
-
-if __name__ == "__main__":
+def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Read & calibrate AVHRR GAC data and write results to netCDF")
     parser.add_argument("--cfg", required=True, type=str, help="Path to pygac-fdr configuration file.")

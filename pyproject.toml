@@ -48,6 +48,15 @@ tests = [
     "pytest-testconfig",
 ]
 
+[project.scripts]
+pygac-fdr-crop = "pygac_fdr.runners.crop:main"
+pygac-fdr-dump = "pygac_fdr.runners.dump:main"
+pygac-fdr-mda-collect = "pygac_fdr.runners.mda_collect:main"
+pygac-fdr-mda-update = "pygac_fdr.runners.mda_update:main"
+pygac-fdr-run = "pygac_fdr.runners.run:main"
+pygac-fdr-val-collect = "pygac_fdr.runners.val_collect:main"
+pygac-fdr-val-plot = "pygac_fdr.runners.val_plot:main"
+
 [project.urls]
 Homepage = "https://github.com/pytroll/pygac-fdr"
 

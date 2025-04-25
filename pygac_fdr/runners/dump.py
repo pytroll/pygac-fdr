@@ -15,25 +15,27 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # pygac-fdr. If not, see <http://www.gnu.org/licenses/>.
+"""Print contents of metadata database."""
 
 import argparse
-import logging
 
-from pygac_fdr.metadata import MetadataUpdater, read_metadata_from_database
-from pygac_fdr.utils import logging_on
+import pandas as pd
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Update metadata in level 1c files")
-    parser.add_argument(
-        "--dbfile",
-        required=True,
-        type=str,
-        help="Metadata database created with pygac-fdr-mda-collect",
-    )
-    parser.add_argument("--verbose", action="store_true", help="Increase verbosity")
+from pygac_fdr.metadata import MetadataCollector
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("dbfile", help="Metadata database")
+    parser.add_argument("-n", help="Maximum number of rows to be printed", type=int)
     args = parser.parse_args()
-    logging_on(logging.DEBUG if args.verbose else logging.INFO)
 
-    mda = read_metadata_from_database(args.dbfile)
-    updater = MetadataUpdater()
-    updater.update(mda)
+    collector = MetadataCollector()
+    mda = collector.read_sql(args.dbfile)
+
+    pd.set_option("display.max_rows", args.n)
+    pd.set_option("display.max_columns", None)
+    pd.set_option("display.width", None)
+    pd.set_option("display.max_colwidth", 22)
+
+    print(mda)
