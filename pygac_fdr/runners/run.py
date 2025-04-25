@@ -20,7 +20,7 @@ import argparse
 import logging
 import re
 import tarfile
-from contextlib import closing
+from contextlib import closing, suppress
 
 import satpy
 from satpy.readers import FSFile
@@ -56,6 +56,15 @@ def process_file(filename, config):
         )
         writer.write(scene=scene)
         success = True
+        if image_config := config["output"].get("image"):
+            composite = image_config["composite"]
+            scene.load([composite])
+            area = image_config["area"]
+            scn = scene.resample(area)
+            overlay = None
+            with suppress(KeyError):
+                overlay = {'coast_dir': image_config["coastlines_dir"], 'color': 'red'}
+            scn.save_dataset(composite, base_dir=config["output"].get("output_dir"), overlay=overlay)
     except Exception as err:
         if config["controls"]["debug"]:
             raise
