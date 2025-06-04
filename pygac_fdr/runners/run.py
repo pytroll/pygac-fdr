@@ -54,6 +54,14 @@ def process_file(filename, config):
             engine=config["netcdf"].get("engine"),
             debug=config["controls"].get("debug"),
         )
+        if True:
+            scene.load(["overview"])
+            scn = scene.resample("omerc_bb")
+            scn.save_dataset(
+                "overview",
+                base_dir=config["output"].get("output_dir"),
+                overlay={"coast_dir": "/home/k000886/data/shapes/", "color": "red"},
+            )
         writer.write(scene=scene)
         success = True
         if image_config := config["output"].get("image"):
@@ -110,6 +118,7 @@ def main():
     parser.add_argument("--log-all", action="store_true", help="Enable logging for all modules")
     parser.add_argument("filenames", nargs="+", help="AVHRR GAC level 1b files to be processed")
     parser.add_argument("--georef", type=str, help="Path to reference GeoTiff file for georeferencing")
+    parser.add_argument("--dem", type=str, help="Path to digital elevation model GeoTiff file for orthocorrection")
     args = parser.parse_args()
     logging_on(logging.DEBUG if args.verbose else logging.INFO, for_all=args.log_all)
 
@@ -122,6 +131,8 @@ def main():
         config["controls"]["reader_kwargs"]["tle_dir"] = args.tle_dir
     if args.georef:
         config["controls"]["reader_kwargs"]["reference_image"] = args.georef
+    if args.dem:
+        config["controls"]["reader_kwargs"]["dem"] = args.dem
     if args.debug:
         config["controls"]["debug"] = args.debug
 

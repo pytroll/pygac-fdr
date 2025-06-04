@@ -22,7 +22,6 @@ import logging
 import os
 import warnings
 from datetime import datetime
-from packaging.version import Version
 from string import Formatter
 
 import netCDF4
@@ -30,6 +29,7 @@ import numpy as np
 import pygac
 import satpy
 import xarray as xr
+from packaging.version import Version
 
 import pygac_fdr
 from pygac_fdr.metadata import TIME_COVERAGE
@@ -202,9 +202,7 @@ def get_gcmd_platform_name(pygac_name, with_category=True):
         raise ValueError("Invalid platform name: {}".format(pygac_name))
 
     if with_category:
-        gcmd_name = "{} > {} > {}".format(
-            "Earth Observation Satellites", gcmd_series, gcmd_name
-        )
+        gcmd_name = "{} > {} > {}".format("Earth Observation Satellites", gcmd_series, gcmd_name)
 
     return gcmd_name
 
@@ -254,17 +252,16 @@ class NetcdfWriter:
         fname_fmt=None,
         debug=None,
     ):
-        """
-        Args:
-            output_dir (str): Specifies the output directory. Default: Current
-                directory.
-            global_attrs (dict): User-defined global attributes to be included.
-            gac_header_attrs (dict): Attributes describing the raw GAC header.
-            encoding (dict): Specifies how to encode the datasets. See
-                https://xarray.pydata.org/en/stable/user-guide/io.html?highlight=encoding#writing-encoded-data
-            engine (str): NetCDF engine to be used. Default: netcdf4
-            fname_fmt (str): Specifies the filename format.
-            debug (bool): If True, use constant creation time in output filenames.
+        """Args:
+        output_dir (str): Specifies the output directory. Default: Current
+            directory.
+        global_attrs (dict): User-defined global attributes to be included.
+        gac_header_attrs (dict): Attributes describing the raw GAC header.
+        encoding (dict): Specifies how to encode the datasets. See
+            https://xarray.pydata.org/en/stable/user-guide/io.html?highlight=encoding#writing-encoded-data
+        engine (str): NetCDF engine to be used. Default: netcdf4
+        fname_fmt (str): Specifies the filename format.
+        debug (bool): If True, use constant creation time in output filenames.
         """
         self.output_dir = output_dir or "."
         self.global_attrs = global_attrs or {}
@@ -288,10 +285,7 @@ class NetcdfWriter:
         """
         numbers = Version(version).release
         if numbers[1] > 9 or numbers[2] > 9:
-            raise ValueError(
-                "Invalid version number: {}. Minor/patch versions > 9 are not "
-                "supported".format(version)
-            )
+            raise ValueError("Invalid version number: {}. Minor/patch versions > 9 are not supported".format(version))
         return sum(10**i * v for i, v in enumerate(reversed(numbers)))
 
     def _compose_filename(self, scene):
@@ -328,11 +322,7 @@ class NetcdfWriter:
                 try:
                     fields[field] = self.global_attrs[field]
                 except KeyError:
-                    raise KeyError(
-                        "Cannot find filename component {} in global attributes".format(
-                            field
-                        )
-                    )
+                    raise KeyError("Cannot find filename component {} in global attributes".format(field))
 
         return self.fname_fmt.format(**fields)
 
@@ -434,9 +424,7 @@ class SceneEncoder:
 
     def _get_scene_keys(self, scene):
         dataset_keys = set([key["name"] for key in scene.keys()])
-        coords_keys = set(
-            [coord for key in scene.keys() for coord in scene[key].coords]
-        )
+        coords_keys = set([coord for key in scene.keys() for coord in scene[key].coords])
         return dataset_keys.union(coords_keys)
 
     def _fix_dtypes(self, encoding):
@@ -483,9 +471,7 @@ class GlobalAttributeComposer:
             "date_created": datetime.now().isoformat(),
             "start_time": start_time.strftime(TIME_FMT).data,
             "end_time": end_time.strftime(TIME_FMT).data,
-            "sun_earth_distance_correction_factor": ch_attrs[
-                "sun_earth_distance_correction_factor"
-            ],
+            "sun_earth_distance_correction_factor": ch_attrs["sun_earth_distance_correction_factor"],
             "version_pygac": pygac.__version__,
             "version_pygac_fdr": pygac_fdr.__version__,
             "version_satpy": satpy.__version__,
@@ -551,9 +537,7 @@ class AttributeProcessor:
     def _set_custom_attrs(self, scene):
         """Set custom dataset attributes."""
         scene["qual_flags"].attrs["comment"] = (
-            "Seven binary quality flags are provided per "
-            "scanline. See the num_flags coordinate for their "
-            "meanings."
+            "Seven binary quality flags are provided per scanline. See the num_flags coordinate for their meanings."
         )
 
 
@@ -576,7 +560,8 @@ class CoordinateProcessor:
                 self._add_xy_coords(scene, ds_name)
 
     def _update_acq_time_coords(self, dataset):
-        dataset["acq_time"].attrs.update({"standard_name": "time", "axis": "T"})
+        # dataset["acq_time"].attrs.update({"standard_name": "time", "axis": "T"})
+        print(":)")
 
     def _add_latlon_coords(self, scene, ds_name):
         for coord_name in ("latitude", "longitude"):
@@ -591,9 +576,7 @@ class CoordinateProcessor:
 
     def _add_latlon_coord_attrs(self, scene, ds_name, coord_name):
         scene[ds_name].coords[coord_name].attrs = dict(
-            (key, val)
-            for key, val in scene[coord_name].attrs.items()
-            if key in self.latlon_attrs
+            (key, val) for key, val in scene[coord_name].attrs.items() if key in self.latlon_attrs
         )
 
     def _add_xy_coords(self, scene, ds_name):
@@ -606,12 +589,8 @@ class CoordinateProcessor:
         self._update_xy_coord_attrs(scene, ds_name)
 
     def _update_xy_coord_attrs(self, scene, ds_name):
-        scene[ds_name].coords["x"].attrs.update(
-            {"axis": "X", "long_name": "Pixel number"}
-        )
-        scene[ds_name].coords["y"].attrs.update(
-            {"axis": "Y", "long_name": "Line number"}
-        )
+        scene[ds_name].coords["x"].attrs.update({"axis": "X", "long_name": "Pixel number"})
+        scene[ds_name].coords["y"].attrs.update({"axis": "Y", "long_name": "Line number"})
 
 
 def _has_xy_dims(dataset):
