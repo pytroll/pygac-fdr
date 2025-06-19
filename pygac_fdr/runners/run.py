@@ -54,14 +54,7 @@ def process_file(filename, config):
             engine=config["netcdf"].get("engine"),
             debug=config["controls"].get("debug"),
         )
-        if True:
-            scene.load(["overview"])
-            scn = scene.resample("omerc_bb")
-            scn.save_dataset(
-                "overview",
-                base_dir=config["output"].get("output_dir"),
-                overlay={"coast_dir": "/home/k000886/data/shapes/", "color": "red"},
-            )
+
         writer.write(scene=scene)
         success = True
         if image_config := config["output"].get("image"):
