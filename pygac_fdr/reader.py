@@ -52,6 +52,18 @@ def read_file(filename, reader_kwargs=None):
     """
     scene = satpy.Scene(filenames=[filename], reader="avhrr_l1b_gaclac", reader_kwargs=reader_kwargs)
     scene.load(BANDS)
+    if reader_kwargs.get("dem") is not None:
+        AUX_DATA.append("tc_latitude")
+        AUX_DATA.append("tc_longitude")
+    if reader_kwargs.get("reference_image") is not None:
+        AUX_DATA.append("gcp_x")
+        AUX_DATA.append("gcp_y")
+        AUX_DATA.append("gcp_longitude")
+        AUX_DATA.append("gcp_latitude")
+        AUX_DATA.append("gcp_x_corrected")
+        AUX_DATA.append("gcp_y_corrected")
+        AUX_DATA.append("gcp_x_displacement")
+        AUX_DATA.append("gcp_y_displacement")
     scene.load(AUX_DATA)
 
     # Add additional metadata
