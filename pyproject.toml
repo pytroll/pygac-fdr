@@ -21,6 +21,7 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
+    "aiohttp>=3.12.15",
     "fsspec",
     "georeferencer",
     "h5py",
@@ -31,8 +32,10 @@ dependencies = [
     "pyorbital",
     "pyresample",
     "pyyaml",
+    "requests>=2.32.5",
     "satpy",
     "trollsift",
+    "truststore>=0.10.4",
     "xarray >=0.15.1",
 ]
 

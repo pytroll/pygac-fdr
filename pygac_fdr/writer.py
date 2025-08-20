@@ -18,6 +18,7 @@
 
 """Write AVHRR GAC level 1c data to netCDF."""
 
+from contextlib import suppress
 import logging
 import os
 import warnings
@@ -118,6 +119,20 @@ DEFAULT_ENCODING = {
         "complevel": 4,
     },
     "longitude": {
+        "dtype": "int32",
+        "scale_factor": 0.001,
+        "_FillValue": FILL_VALUE_INT32,
+        "zlib": True,
+        "complevel": 4,
+    },
+    "tc_latitude": {
+        "dtype": "int32",
+        "scale_factor": 0.001,
+        "_FillValue": FILL_VALUE_INT32,
+        "zlib": True,
+        "complevel": 4,
+    },
+    "tc_longitude": {
         "dtype": "int32",
         "scale_factor": 0.001,
         "_FillValue": FILL_VALUE_INT32,
@@ -486,9 +501,14 @@ class GlobalAttributeComposer:
             "geospatial_lat_resolution": "{} meters".format(resol),
             "time_coverage_start": time_cov_start.strftime(TIME_FMT),
             "orbital_parameters": ch_attrs.get("orbital_parameters", {}),
+            "geospatial_boundary": list(zip(boundary(self.scene["longitude"]),
+                                            boundary(self.scene["latitude"]))),
         }
         if time_cov_end:  # Otherwise still operational
             global_attrs["time_coverage_end"] = time_cov_end.strftime(TIME_FMT)
+        with suppress(KeyError):
+            global_attrs["median_gcp_distance"] = ch_attrs["median_gcp_distance"]
+
         return global_attrs
 
     def _get_channel_attrs(self):
@@ -498,6 +518,18 @@ class GlobalAttributeComposer:
         generations.
         """
         return self.scene["4"].attrs
+
+
+def boundary(array):
+    """Get boundary points of array."""
+    vsize, hsize = array.shape
+    horizontally = np.linspace(0, hsize - 1, 10, endpoint=False).astype(int)
+    vertically = np.linspace(0, vsize - 1, 10, endpoint=False).astype(int)
+    top = array[0, horizontally]
+    right = array[vertically, -1]
+    bottom = array[-1, hsize - 1 - horizontally]
+    left = array[vsize - 1 - vertically, 0]
+    return np.hstack((top, right, bottom, left))
 
 
 class AttributeProcessor:
@@ -560,8 +592,8 @@ class CoordinateProcessor:
                 self._add_xy_coords(scene, ds_name)
 
     def _update_acq_time_coords(self, dataset):
-        # dataset["acq_time"].attrs.update({"standard_name": "time", "axis": "T"})
-        print(":)")
+        with suppress(KeyError):
+            dataset["acq_time"].attrs.update({"standard_name": "time", "axis": "T"})
 
     def _add_latlon_coords(self, scene, ds_name):
         for coord_name in ("latitude", "longitude"):

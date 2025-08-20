@@ -27,12 +27,26 @@ BANDS = ["1", "2", "3", "3a", "3b", "4", "5"]
 AUX_DATA = [
     "latitude",
     "longitude",
+    "tc_latitude",
+    "tc_longitude",
+    "gcp_x",
+    "gcp_y",
+    "gcp_longitude",
+    "gcp_latitude",
+    "gcp_x_corrected",
+    "gcp_y_corrected",
+    "gcp_x_displacement",
+    "gcp_y_displacement",
     "qual_flags",
     "sensor_zenith_angle",
     "solar_zenith_angle",
     "solar_azimuth_angle",
     "sensor_azimuth_angle",
     "sun_sensor_azimuth_difference_angle",
+    "random_uncertainty",
+    "systematic_uncertainty",
+    "channel_covariance_ratio",
+    "uncertainty_flags",
 ]
 GAC_FORMAT = (
     "{creation_site:3s}.{transfer_mode:4s}.{platform_id:2s}.D{start_time:%y%j.S%H%M}."
