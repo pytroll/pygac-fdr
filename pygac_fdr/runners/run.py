@@ -112,6 +112,7 @@ def main():
     parser.add_argument("filenames", nargs="+", help="AVHRR GAC level 1b files to be processed")
     parser.add_argument("--georef", type=str, help="Path to reference GeoTiff file for georeferencing")
     parser.add_argument("--dem", type=str, help="Path to digital elevation model GeoTiff file for orthocorrection")
+    parser.add_argument("--with-uncertainties", action="store_true", help="Compute uncertainties")
     args = parser.parse_args()
     logging_on(logging.DEBUG if args.verbose else logging.INFO, for_all=args.log_all)
 
@@ -126,6 +127,8 @@ def main():
         config["controls"]["reader_kwargs"]["reference_image"] = args.georef
     if args.dem:
         config["controls"]["reader_kwargs"]["dem"] = args.dem
+    if args.with_uncertainties:
+        config["controls"]["reader_kwargs"]["compute_uncertainties"] = args.with_uncertainties
     if args.debug:
         config["controls"]["debug"] = args.debug
 

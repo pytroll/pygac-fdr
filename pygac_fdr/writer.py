@@ -508,6 +508,10 @@ class GlobalAttributeComposer:
             global_attrs["time_coverage_end"] = time_cov_end.strftime(TIME_FMT)
         with suppress(KeyError):
             global_attrs["median_gcp_distance"] = ch_attrs["median_gcp_distance"]
+        with suppress(KeyError):
+            global_attrs["georeferenced"] = ch_attrs["georeferenced"]
+        with suppress(KeyError):
+            global_attrs["uncertainties_computed"] = ch_attrs["uncertainties_computed"]
 
         return global_attrs
 
