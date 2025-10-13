@@ -547,6 +547,8 @@ class AttributeProcessor:
         "standard_name",
         "name",
         "area",
+        "flag_meanings",
+        "flag_masks",
         "_satpy_id",
     ]
 
