@@ -16,21 +16,22 @@
 # You should have received a copy of the GNU General Public License along with
 # pygac-fdr. If not, see <http://www.gnu.org/licenses/>.
 
-import argparse
-import logging
+"""L1b to l1c processor."""
 
-from pygac_fdr.update import update_l1c_file_metadata
-from pygac_fdr.utils import logging_on
+from pygac_fdr.run.reader import read_gac
+from pygac_fdr.run.writer import NetcdfWriter
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Update metadata in level 1c files")
-    parser.add_argument(
-        "--dbfile",
-        required=True,
-        type=str,
-        help="Metadata database created with pygac-fdr-mda-collect",
+
+def process_l1b_to_l1c(filename, config):
+    """Process l1b file using pygac and save l1c to netcdf."""
+    scene = read_gac(filename, reader_kwargs=config["controls"].get("reader_kwargs"))
+    writer = NetcdfWriter(
+        output_dir=config["output"].get("output_dir"),
+        global_attrs=config.get("global_attrs"),
+        gac_header_attrs=config.get("gac_header_attrs"),
+        fname_fmt=config["output"].get("fname_fmt"),
+        encoding=config["netcdf"].get("encoding"),
+        engine=config["netcdf"].get("engine"),
+        debug=config["controls"].get("debug"),
     )
-    parser.add_argument("--verbose", action="store_true", help="Increase verbosity")
-    args = parser.parse_args()
-    logging_on(logging.DEBUG if args.verbose else logging.INFO)
-    update_l1c_file_metadata(args.dbfile)
+    writer.write(scene=scene)

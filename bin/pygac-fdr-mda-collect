@@ -20,11 +20,7 @@
 import argparse
 import logging
 
-from pygac_fdr.metadata import (
-    MetadataCollector,
-    MetadataEnhancer,
-    save_metadata_to_database,
-)
+from pygac_fdr.collect import collect_l1c_metadata
 from pygac_fdr.utils import LOGGER_NAME, logging_on
 
 LOG = logging.getLogger(LOGGER_NAME)
@@ -51,9 +47,4 @@ if __name__ == "__main__":
     parser.add_argument("--verbose", action="store_true", help="Increase verbosity")
     args = parser.parse_args()
     logging_on(logging.DEBUG if args.verbose else logging.INFO)
-
-    collector = MetadataCollector()
-    mda = collector.collect_metadata(args.filenames)
-    enhancer = MetadataEnhancer()
-    mda = enhancer.enhance_metadata(mda)
-    save_metadata_to_database(mda, args.dbfile, args.if_exists)
+    collect_l1c_metadata(args.filenames, args.dbfile, args.if_exists)
