@@ -358,10 +358,10 @@ class NetcdfWriter:
     def _fix_global_attrs(self, filename, global_attrs):
         LOG.info("Fixing global attributes")
         with netCDF4.Dataset(filename, mode="a") as nc:
-            # Satpy's CF writer overrides Conventions attribute
+            # WARN: Satpy's CF writer overrides Conventions attribute
             nc.Conventions = global_attrs["Conventions"]
 
-            # Satpy's CF writer assumes x/y to be projection coordinates
+            # NOTE: Satpy's CF writer assumes x/y to be projection coordinates
             for var_name in ("x", "y"):
                 for drop_attr in ["standard_name", "units"]:
                     nc.variables[var_name].delncattr(drop_attr)
@@ -381,9 +381,10 @@ class NetcdfWriter:
         Returns:
             Names of files written.
         """
-        filename = os.path.join(self.output_dir, self._compose_filename(scene))
+        basename = self._compose_filename(scene)
+        filename = os.path.join(self.output_dir, basename)
         gac_header = self._get_gac_header(scene)
-        global_attrs = self._get_global_attrs(scene)
+        global_attrs = self._get_global_attrs(scene, basename)
         self._preproc_scene(scene)
         self._save_datasets(scene, filename, global_attrs)
         self._postproc_file(filename, gac_header, global_attrs)
@@ -392,7 +393,8 @@ class NetcdfWriter:
     def _get_gac_header(self, scene):
         return scene["4"].attrs["gac_header"].copy()
 
-    def _get_global_attrs(self, scene):
+    def _get_global_attrs(self, scene, filename):
+        self.global_attrs["filename"] = filename
         ac = GlobalAttributeComposer(scene, self.global_attrs)
         return ac.get_global_attrs()
 
