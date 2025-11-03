@@ -18,11 +18,11 @@
 
 """Write AVHRR GAC level 1c data to netCDF."""
 
+from contextlib import suppress
 import logging
 import os
 import warnings
 from datetime import datetime
-from distutils.version import StrictVersion
 from string import Formatter
 
 import netCDF4
@@ -30,6 +30,7 @@ import numpy as np
 import pygac
 import satpy
 import xarray as xr
+from packaging.version import Version
 
 import pygac_fdr
 from pygac_fdr.metadata import TIME_COVERAGE
@@ -124,6 +125,20 @@ DEFAULT_ENCODING = {
         "zlib": True,
         "complevel": 4,
     },
+    "tc_latitude": {
+        "dtype": "int32",
+        "scale_factor": 0.001,
+        "_FillValue": FILL_VALUE_INT32,
+        "zlib": True,
+        "complevel": 4,
+    },
+    "tc_longitude": {
+        "dtype": "int32",
+        "scale_factor": 0.001,
+        "_FillValue": FILL_VALUE_INT32,
+        "zlib": True,
+        "complevel": 4,
+    },
     "sensor_azimuth_angle": {
         "dtype": "int16",
         "scale_factor": 0.01,
@@ -202,9 +217,7 @@ def get_gcmd_platform_name(pygac_name, with_category=True):
         raise ValueError("Invalid platform name: {}".format(pygac_name))
 
     if with_category:
-        gcmd_name = "{} > {} > {}".format(
-            "Earth Observation Satellites", gcmd_series, gcmd_name
-        )
+        gcmd_name = "{} > {} > {}".format("Earth Observation Satellites", gcmd_series, gcmd_name)
 
     return gcmd_name
 
@@ -254,17 +267,16 @@ class NetcdfWriter:
         fname_fmt=None,
         debug=None,
     ):
-        """
-        Args:
-            output_dir (str): Specifies the output directory. Default: Current
-                directory.
-            global_attrs (dict): User-defined global attributes to be included.
-            gac_header_attrs (dict): Attributes describing the raw GAC header.
-            encoding (dict): Specifies how to encode the datasets. See
-                https://xarray.pydata.org/en/stable/user-guide/io.html?highlight=encoding#writing-encoded-data
-            engine (str): NetCDF engine to be used. Default: netcdf4
-            fname_fmt (str): Specifies the filename format.
-            debug (bool): If True, use constant creation time in output filenames.
+        """Args:
+        output_dir (str): Specifies the output directory. Default: Current
+            directory.
+        global_attrs (dict): User-defined global attributes to be included.
+        gac_header_attrs (dict): Attributes describing the raw GAC header.
+        encoding (dict): Specifies how to encode the datasets. See
+            https://xarray.pydata.org/en/stable/user-guide/io.html?highlight=encoding#writing-encoded-data
+        engine (str): NetCDF engine to be used. Default: netcdf4
+        fname_fmt (str): Specifies the filename format.
+        debug (bool): If True, use constant creation time in output filenames.
         """
         self.output_dir = output_dir or "."
         self.global_attrs = global_attrs or {}
@@ -286,12 +298,9 @@ class NetcdfWriter:
 
         Minor/patch versions > 9 are not supported.
         """
-        numbers = StrictVersion(version).version
+        numbers = Version(version).release
         if numbers[1] > 9 or numbers[2] > 9:
-            raise ValueError(
-                "Invalid version number: {}. Minor/patch versions > 9 are not "
-                "supported".format(version)
-            )
+            raise ValueError("Invalid version number: {}. Minor/patch versions > 9 are not supported".format(version))
         return sum(10**i * v for i, v in enumerate(reversed(numbers)))
 
     def _compose_filename(self, scene):
@@ -328,11 +337,7 @@ class NetcdfWriter:
                 try:
                     fields[field] = self.global_attrs[field]
                 except KeyError:
-                    raise KeyError(
-                        "Cannot find filename component {} in global attributes".format(
-                            field
-                        )
-                    )
+                    raise KeyError("Cannot find filename component {} in global attributes".format(field))
 
         return self.fname_fmt.format(**fields)
 
@@ -353,17 +358,17 @@ class NetcdfWriter:
     def _fix_global_attrs(self, filename, global_attrs):
         LOG.info("Fixing global attributes")
         with netCDF4.Dataset(filename, mode="a") as nc:
-            # Satpy's CF writer overrides Conventions attribute
+            # WARN: Satpy's CF writer overrides Conventions attribute
             nc.Conventions = global_attrs["Conventions"]
 
-            # Satpy's CF writer assumes x/y to be projection coordinates
+            # NOTE: Satpy's CF writer assumes x/y to be projection coordinates
             for var_name in ("x", "y"):
                 for drop_attr in ["standard_name", "units"]:
                     nc.variables[var_name].delncattr(drop_attr)
 
     def _append_gac_header(self, filename, header):
-        """Append raw GAC header to the given netCDF file."""
-        LOG.info("Appending GAC header")
+        """Append raw GAC/LAC header to the given netCDF file."""
+        LOG.info("Appending GAC/LAC header")
         data_vars = dict([(name, header[name]) for name in header.dtype.names])
         header = xr.Dataset(data_vars, attrs=self.gac_header_attrs)
         header.to_netcdf(filename, mode="a", group="gac_header")
@@ -376,9 +381,10 @@ class NetcdfWriter:
         Returns:
             Names of files written.
         """
-        filename = os.path.join(self.output_dir, self._compose_filename(scene))
+        basename = self._compose_filename(scene)
+        filename = os.path.join(self.output_dir, basename)
         gac_header = self._get_gac_header(scene)
-        global_attrs = self._get_global_attrs(scene)
+        global_attrs = self._get_global_attrs(scene, basename)
         self._preproc_scene(scene)
         self._save_datasets(scene, filename, global_attrs)
         self._postproc_file(filename, gac_header, global_attrs)
@@ -387,7 +393,8 @@ class NetcdfWriter:
     def _get_gac_header(self, scene):
         return scene["4"].attrs["gac_header"].copy()
 
-    def _get_global_attrs(self, scene):
+    def _get_global_attrs(self, scene, filename):
+        self.global_attrs["filename"] = filename
         ac = GlobalAttributeComposer(scene, self.global_attrs)
         return ac.get_global_attrs()
 
@@ -434,9 +441,7 @@ class SceneEncoder:
 
     def _get_scene_keys(self, scene):
         dataset_keys = set([key["name"] for key in scene.keys()])
-        coords_keys = set(
-            [coord for key in scene.keys() for coord in scene[key].coords]
-        )
+        coords_keys = set([coord for key in scene.keys() for coord in scene[key].coords])
         return dataset_keys.union(coords_keys)
 
     def _fix_dtypes(self, encoding):
@@ -483,9 +488,7 @@ class GlobalAttributeComposer:
             "date_created": datetime.now().isoformat(),
             "start_time": start_time.strftime(TIME_FMT).data,
             "end_time": end_time.strftime(TIME_FMT).data,
-            "sun_earth_distance_correction_factor": ch_attrs[
-                "sun_earth_distance_correction_factor"
-            ],
+            "sun_earth_distance_correction_factor": ch_attrs["sun_earth_distance_correction_factor"],
             "version_pygac": pygac.__version__,
             "version_pygac_fdr": pygac_fdr.__version__,
             "version_satpy": satpy.__version__,
@@ -500,9 +503,22 @@ class GlobalAttributeComposer:
             "geospatial_lat_resolution": "{} meters".format(resol),
             "time_coverage_start": time_cov_start.strftime(TIME_FMT),
             "orbital_parameters": ch_attrs.get("orbital_parameters", {}),
+            "geospatial_boundary": list(zip(boundary(self.scene["longitude"]),
+                                            boundary(self.scene["latitude"]))),
         }
         if time_cov_end:  # Otherwise still operational
             global_attrs["time_coverage_end"] = time_cov_end.strftime(TIME_FMT)
+        with suppress(KeyError):
+            global_attrs["median_gcp_distance"] = ch_attrs["median_gcp_distance"]
+        with suppress(KeyError):
+            global_attrs["estimated_attitude_in_degrees"] = ch_attrs["estimated_attitude_in_degrees"]
+        with suppress(KeyError):
+            global_attrs["estimated_time_offset_in_seconds"] = ch_attrs["estimated_time_offset_in_seconds"]
+        with suppress(KeyError):
+            global_attrs["georeferenced"] = ch_attrs["georeferenced"]
+        with suppress(KeyError):
+            global_attrs["uncertainties_computed"] = ch_attrs["uncertainties_computed"]
+
         return global_attrs
 
     def _get_channel_attrs(self):
@@ -512,6 +528,18 @@ class GlobalAttributeComposer:
         generations.
         """
         return self.scene["4"].attrs
+
+
+def boundary(array):
+    """Get boundary points of array."""
+    vsize, hsize = array.shape
+    horizontally = np.linspace(0, hsize - 1, 10, endpoint=False).astype(int)
+    vertically = np.linspace(0, vsize - 1, 10, endpoint=False).astype(int)
+    top = array[0, horizontally]
+    right = array[vertically, -1]
+    bottom = array[-1, hsize - 1 - horizontally]
+    left = array[vsize - 1 - vertically, 0]
+    return np.hstack((top, right, bottom, left))
 
 
 class AttributeProcessor:
@@ -525,6 +553,8 @@ class AttributeProcessor:
         "standard_name",
         "name",
         "area",
+        "flag_meanings",
+        "flag_masks",
         "_satpy_id",
     ]
 
@@ -551,9 +581,7 @@ class AttributeProcessor:
     def _set_custom_attrs(self, scene):
         """Set custom dataset attributes."""
         scene["qual_flags"].attrs["comment"] = (
-            "Seven binary quality flags are provided per "
-            "scanline. See the num_flags coordinate for their "
-            "meanings."
+            "Seven binary quality flags are provided per scanline. See the num_flags coordinate for their meanings."
         )
 
 
@@ -576,7 +604,8 @@ class CoordinateProcessor:
                 self._add_xy_coords(scene, ds_name)
 
     def _update_acq_time_coords(self, dataset):
-        dataset["acq_time"].attrs.update({"standard_name": "time", "axis": "T"})
+        with suppress(KeyError):
+            dataset["acq_time"].attrs.update({"standard_name": "time", "axis": "T"})
 
     def _add_latlon_coords(self, scene, ds_name):
         for coord_name in ("latitude", "longitude"):
@@ -591,9 +620,7 @@ class CoordinateProcessor:
 
     def _add_latlon_coord_attrs(self, scene, ds_name, coord_name):
         scene[ds_name].coords[coord_name].attrs = dict(
-            (key, val)
-            for key, val in scene[coord_name].attrs.items()
-            if key in self.latlon_attrs
+            (key, val) for key, val in scene[coord_name].attrs.items() if key in self.latlon_attrs
         )
 
     def _add_xy_coords(self, scene, ds_name):
@@ -606,12 +633,8 @@ class CoordinateProcessor:
         self._update_xy_coord_attrs(scene, ds_name)
 
     def _update_xy_coord_attrs(self, scene, ds_name):
-        scene[ds_name].coords["x"].attrs.update(
-            {"axis": "X", "long_name": "Pixel number"}
-        )
-        scene[ds_name].coords["y"].attrs.update(
-            {"axis": "Y", "long_name": "Line number"}
-        )
+        scene[ds_name].coords["x"].attrs.update({"axis": "X", "long_name": "Pixel number"})
+        scene[ds_name].coords["y"].attrs.update({"axis": "Y", "long_name": "Line number"})
 
 
 def _has_xy_dims(dataset):

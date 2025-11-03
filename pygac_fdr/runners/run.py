@@ -20,13 +20,13 @@ import argparse
 import logging
 import re
 import tarfile
-from contextlib import closing
+from contextlib import closing, suppress
 
 import satpy
 from satpy.readers import FSFile
 
 from pygac_fdr.config import read_config
-from pygac_fdr.reader import read_gac
+from pygac_fdr.reader import read_file
 from pygac_fdr.utils import LOGGER_NAME, TarFileSystem, logging_on
 from pygac_fdr.writer import NetcdfWriter
 
@@ -44,9 +44,7 @@ class HideGzFSFile(FSFile):
 def process_file(filename, config):
     LOG.info("Processing file {}".format(filename))
     try:
-        scene = read_gac(
-            filename, reader_kwargs=config["controls"].get("reader_kwargs")
-        )
+        scene = read_file(filename, reader_kwargs=config["controls"].get("reader_kwargs"))
         writer = NetcdfWriter(
             output_dir=config["output"].get("output_dir"),
             global_attrs=config.get("global_attrs"),
@@ -56,8 +54,18 @@ def process_file(filename, config):
             engine=config["netcdf"].get("engine"),
             debug=config["controls"].get("debug"),
         )
+
         writer.write(scene=scene)
         success = True
+        if image_config := config["output"].get("image"):
+            composite = image_config["composite"]
+            scene.load([composite])
+            area = image_config["area"]
+            scn = scene.resample(area)
+            overlay = None
+            with suppress(KeyError):
+                overlay = {'coast_dir': image_config["coastlines_dir"], 'color': 'red'}
+            scn.save_dataset(composite, base_dir=config["output"].get("output_dir"), overlay=overlay)
     except Exception as err:
         if config["controls"]["debug"]:
             raise
@@ -81,23 +89,17 @@ def process_tarball(tarball, config):
     else:
         LOG.info("Successfully processed all files in {}".format(tarball))
 
-
-if __name__ == "__main__":
+def main():
     # Parse command line arguments
-    parser = argparse.ArgumentParser(
-        description="Read & calibrate AVHRR GAC data and write results to netCDF"
-    )
-    parser.add_argument(
-        "--cfg", required=True, type=str, help="Path to pygac-fdr configuration file."
-    )
+    parser = argparse.ArgumentParser(description="Read & calibrate AVHRR GAC data and write results to netCDF")
+    parser.add_argument("--cfg", required=True, type=str, help="Path to pygac-fdr configuration file.")
     parser.add_argument(
         "--output-dir",
         help="Output directory. Overrides entry in the configuration file.",
     )
     parser.add_argument(
         "--tle-dir",
-        help="Directory containing TLE files. Overrides entry in the configuration"
-        " file.",
+        help="Directory containing TLE files. Overrides entry in the configuration file.",
     )
     parser.add_argument(
         "--debug",
@@ -106,12 +108,11 @@ if __name__ == "__main__":
         "next file. Overrides entry in the configuration file.",
     )
     parser.add_argument("--verbose", action="store_true", help="Increase verbosity")
-    parser.add_argument(
-        "--log-all", action="store_true", help="Enable logging for all modules"
-    )
-    parser.add_argument(
-        "filenames", nargs="+", help="AVHRR GAC level 1b files to be processed"
-    )
+    parser.add_argument("--log-all", action="store_true", help="Enable logging for all modules")
+    parser.add_argument("filenames", nargs="+", help="AVHRR GAC level 1b files to be processed")
+    parser.add_argument("--georef", type=str, help="Path to reference GeoTiff file for georeferencing")
+    parser.add_argument("--dem", type=str, help="Path to digital elevation model GeoTiff file for orthocorrection")
+    parser.add_argument("--with-uncertainties", action="store_true", help="Compute uncertainties")
     args = parser.parse_args()
     logging_on(logging.DEBUG if args.verbose else logging.INFO, for_all=args.log_all)
 
@@ -122,6 +123,12 @@ if __name__ == "__main__":
         config["output"]["output_dir"] = args.output_dir
     if args.tle_dir:
         config["controls"]["reader_kwargs"]["tle_dir"] = args.tle_dir
+    if args.georef:
+        config["controls"]["reader_kwargs"]["reference_image"] = args.georef
+    if args.dem:
+        config["controls"]["reader_kwargs"]["dem"] = args.dem
+    if args.with_uncertainties:
+        config["controls"]["reader_kwargs"]["compute_uncertainties"] = args.with_uncertainties
     if args.debug:
         config["controls"]["debug"] = args.debug
 

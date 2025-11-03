@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "Python package for creating a Fundamental Data Record (FDR) of AVHRR GAC data using pygac"
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 authors = [
     { name = "The Pytroll Team", email = "pytroll@googlegroups.com" },
 ]
@@ -21,15 +21,21 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
+    "aiohttp>=3.12.15",
     "fsspec",
+    "georeferencer",
     "h5py",
-    "netCDF4",
+    "netcdf4",
     "numpy",
     "pandas >=1.0.3",
-    "pygac >=1.3.1",
+    "pygac>=1.3.1",
+    "pyorbital",
+    "pyresample",
     "pyyaml",
+    "requests>=2.32.5",
     "satpy",
     "trollsift",
+    "truststore>=0.10.4",
     "xarray >=0.15.1",
 ]
 
@@ -44,6 +50,15 @@ tests = [
     "pytest-cov",
     "pytest-testconfig",
 ]
+
+[project.scripts]
+pygac-fdr-crop = "pygac_fdr.runners.crop:main"
+pygac-fdr-dump = "pygac_fdr.runners.dump:main"
+pygac-fdr-mda-collect = "pygac_fdr.runners.mda_collect:main"
+pygac-fdr-mda-update = "pygac_fdr.runners.mda_update:main"
+pygac-fdr-run = "pygac_fdr.runners.run:main"
+pygac-fdr-val-collect = "pygac_fdr.runners.val_collect:main"
+pygac-fdr-val-plot = "pygac_fdr.runners.val_plot:main"
 
 [project.urls]
 Homepage = "https://github.com/pytroll/pygac-fdr"

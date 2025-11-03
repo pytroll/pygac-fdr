@@ -256,7 +256,7 @@ def draw_hovmoeller(channel, data):
     return fig
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("dbfiles", nargs="+", help="Statistics databases")
     parser.add_argument("--cache", help="Cache directory, defaults to %(default)s", default='./cache')
