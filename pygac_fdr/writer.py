@@ -511,6 +511,10 @@ class GlobalAttributeComposer:
         with suppress(KeyError):
             global_attrs["median_gcp_distance"] = ch_attrs["median_gcp_distance"]
         with suppress(KeyError):
+            global_attrs["estimated_attitude_in_degrees"] = ch_attrs["estimated_attitude_in_degrees"]
+        with suppress(KeyError):
+            global_attrs["estimated_time_offset_in_seconds"] = ch_attrs["estimated_time_offset_in_seconds"]
+        with suppress(KeyError):
             global_attrs["georeferenced"] = ch_attrs["georeferenced"]
         with suppress(KeyError):
             global_attrs["uncertainties_computed"] = ch_attrs["uncertainties_computed"]
