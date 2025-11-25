@@ -408,7 +408,7 @@ class TestMetadataEnhancer:
         open_dataset.side_effect = open_dataset_patched
         mda = self.get_mda(multi_platform=True, reverse=True)
         enhancer = MetadataEnhancer()
-        mda = enhancer.enhance_metadata(mda)
+        mda = enhancer.update_metadata(mda)
 
         pd.testing.assert_series_equal(
             mda["global_quality_flag"],

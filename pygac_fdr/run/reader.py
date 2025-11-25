@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # pygac-fdr. If not, see <http://www.gnu.org/licenses/>.
 
-"""Read and calibrate AVHRR GAC level 1b data."""
+"""GAC file reader."""
 
 import os
 

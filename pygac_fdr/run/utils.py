@@ -16,21 +16,13 @@
 # You should have received a copy of the GNU General Public License along with
 # pygac-fdr. If not, see <http://www.gnu.org/licenses/>.
 
-import argparse
-import logging
+"""Runner utilities."""
 
-from pygac_fdr.update import update_l1c_file_metadata
-from pygac_fdr.utils import logging_on
+TIME_FMT = "%Y%m%dT%H%M%SZ"
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Update metadata in level 1c files")
-    parser.add_argument(
-        "--dbfile",
-        required=True,
-        type=str,
-        help="Metadata database created with pygac-fdr-mda-collect",
-    )
-    parser.add_argument("--verbose", action="store_true", help="Increase verbosity")
-    args = parser.parse_args()
-    logging_on(logging.DEBUG if args.verbose else logging.INFO)
-    update_l1c_file_metadata(args.dbfile)
+
+def _get_temp_cov(scene):
+    """Get temporal coverage of the dataset."""
+    tstart = scene["4"]["acq_time"][0]
+    tend = scene["4"]["acq_time"][-1]
+    return tstart.dt, tend.dt

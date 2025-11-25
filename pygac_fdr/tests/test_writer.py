@@ -27,7 +27,7 @@ import xarray as xr
 from pyresample.geometry import SwathDefinition
 from satpy.tests.utils import make_dataid
 
-from pygac_fdr.writer import DEFAULT_ENCODING, NetcdfWriter
+from pygac_fdr.run.writer import DEFAULT_ENCODING, NetcdfWriter
 
 
 class NetcdfWriterTest(unittest.TestCase):

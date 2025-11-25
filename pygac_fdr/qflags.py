@@ -16,21 +16,15 @@
 # You should have received a copy of the GNU General Public License along with
 # pygac-fdr. If not, see <http://www.gnu.org/licenses/>.
 
-import argparse
-import logging
+"""Quality flags."""
 
-from pygac_fdr.update import update_l1c_file_metadata
-from pygac_fdr.utils import logging_on
+from enum import IntEnum
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Update metadata in level 1c files")
-    parser.add_argument(
-        "--dbfile",
-        required=True,
-        type=str,
-        help="Metadata database created with pygac-fdr-mda-collect",
-    )
-    parser.add_argument("--verbose", action="store_true", help="Increase verbosity")
-    args = parser.parse_args()
-    logging_on(logging.DEBUG if args.verbose else logging.INFO)
-    update_l1c_file_metadata(args.dbfile)
+
+class QualityFlags(IntEnum):
+    OK = 0
+    INVALID_TIMESTAMP = 1  # end time < start time or timestamp out of valid range
+    TOO_SHORT = 2  # not enough scanlines or duration too short
+    TOO_LONG = 3  # (end_time - start_time) unrealistically large
+    DUPLICATE = 4  # identical record from different ground stations
+    REDUNDANT = 5  # subset of another file
