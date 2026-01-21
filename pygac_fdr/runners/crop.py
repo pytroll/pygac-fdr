@@ -23,7 +23,8 @@ from dateutil.parser import isoparse
 
 from pygac_fdr.crop import CROP_OVERLAP_BEGINNING, CROP_OVERLAP_END, crop
 
-if __name__ == "__main__":
+
+def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("filename", type=str, help="pygac-fdr output file")
     parser.add_argument(
