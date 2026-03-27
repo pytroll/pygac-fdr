@@ -51,6 +51,9 @@ Homepage = "https://github.com/pytroll/pygac-fdr"
 [tool.hatch.version]
 source = "vcs"
 
+[tool.hatch.version.raw-options]
+local_scheme = "no-local-version"
+
 [tool.hatch.build.hooks.vcs]
 version-file = "pygac_fdr/version.py"
 
