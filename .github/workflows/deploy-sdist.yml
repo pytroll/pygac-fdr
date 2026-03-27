@@ -26,4 +26,4 @@ jobs:
         #if: github.event.action == 'published'
         uses: pypa/gh-action-pypi-publish@v1.13.0
         with:
-          repository-url: https://test.pypi.org/
+          repository-url: https://test.pypi.org/legacy/
