@@ -6,9 +6,11 @@ on:
       - published
 
 jobs:
-  test:
+  pypi-publish:
     runs-on: ubuntu-latest
-
+    environment: pypi
+    permissions:
+      id-token: write
     steps:
       - name: Checkout source
         uses: actions/checkout@v6
@@ -22,6 +24,3 @@ jobs:
       - name: Publish package to PyPI
         if: github.event.action == 'published'
         uses: pypa/gh-action-pypi-publish@v1.13.0
-        with:
-          user: __token__
-          password: ${{ secrets.pypi_token }}
