@@ -1,14 +1,17 @@
 name: Deploy sdist
 
-on:
-  release:
-    types:
-      - published
+on: [pull_request]
+# on:
+#   release:
+#     types:
+#       - published
 
 jobs:
-  test:
+  pypi-publish:
     runs-on: ubuntu-latest
-
+    environment: pypi
+    permissions:
+      id-token: write
     steps:
       - name: Checkout source
         uses: actions/checkout@v6
@@ -20,8 +23,7 @@ jobs:
           python -m build -s
 
       - name: Publish package to PyPI
-        if: github.event.action == 'published'
+        #if: github.event.action == 'published'
         uses: pypa/gh-action-pypi-publish@v1.13.0
         with:
-          user: __token__
-          password: ${{ secrets.pypi_token }}
+          repository-url: https://test.pypi.org/legacy/
