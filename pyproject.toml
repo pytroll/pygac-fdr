@@ -7,7 +7,8 @@ name = "pygac-fdr"
 dynamic = ["version"]
 description = "Python package for creating a Fundamental Data Record (FDR) of AVHRR GAC data using pygac"
 readme = "README.md"
-license = { file = "LICENSE" }
+license = "Apache-2.0"
+license-files = ["LICENSE.txt"]
 requires-python = ">=3.11"
 authors = [
     { name = "The Pytroll Team", email = "pytroll@googlegroups.com" },
@@ -15,7 +16,6 @@ authors = [
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Topic :: Scientific/Engineering",
