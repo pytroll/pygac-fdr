@@ -7,7 +7,8 @@ repos:
     rev: 26.5.1
     hooks:
       - id: black
+        args: [--target-version, py314]
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: 'v0.15.14'
     hooks:
-      - id: ruff
+      - id: ruff-check
