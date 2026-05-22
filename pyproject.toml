@@ -83,6 +83,5 @@ exclude = [".eggs", "doc"]
 [tool.isort]
 profile = "black"
 skip_gitignore = true
-force_to_top = true
 default_section = "THIRDPARTY"
-kown_first_party = "pygac_fdr"
+known_first_party = ["pygac_fdr"]
