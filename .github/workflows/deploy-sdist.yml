@@ -8,7 +8,9 @@ on:
 jobs:
   pypi-publish:
     runs-on: ubuntu-latest
-    environment: pypi
+    environment:
+      name: pypi
+      url: https://pypi.org/p/pygac-fdr
     permissions:
       id-token: write
     steps:
