@@ -1,4 +1,38 @@
-## Version <0.2.3> (2023/11/28)
+## Version 0.3.0 (2026/06/05)
+
+### Issues Closed
+
+* [Issue 146](https://github.com/pytroll/pygac-fdr/issues/146) - Relicense to Apache Version 2 ([PR 148](https://github.com/pytroll/pygac-fdr/pull/148) by [@sfinkens](https://github.com/sfinkens))
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+* [PR 148](https://github.com/pytroll/pygac-fdr/pull/148) - Relicense to Apache-2.0 , by [@sfinkens](https://github.com/sfinkens) ([146](https://github.com/pytroll/pygac-fdr/issues/146))
+* [PR 147](https://github.com/pytroll/pygac-fdr/pull/147) - Adapt metadata computation to most recent pandas version, by [@sfinkens](https://github.com/sfinkens)
+* [PR 144](https://github.com/pytroll/pygac-fdr/pull/144) - Bump pypa/gh-action-pypi-publish from 1.13.0 to 1.14.0, by [@dependabot[bot]](https://github.com/apps/dependabot)
+* [PR 143](https://github.com/pytroll/pygac-fdr/pull/143) - Bump codecov/codecov-action from 5 to 6, by [@dependabot[bot]](https://github.com/apps/dependabot)
+* [PR 142](https://github.com/pytroll/pygac-fdr/pull/142) - Enable trusted publishing, by [@sfinkens](https://github.com/sfinkens)
+* [PR 141](https://github.com/pytroll/pygac-fdr/pull/141) - Bump actions/checkout from 5 to 6, by [@dependabot[bot]](https://github.com/apps/dependabot)
+* [PR 139](https://github.com/pytroll/pygac-fdr/pull/139) - Bump pypa/gh-action-pypi-publish from 1.12.4 to 1.13.0 in /.github/workflows, by [@dependabot[bot]](https://github.com/apps/dependabot)
+* [PR 138](https://github.com/pytroll/pygac-fdr/pull/138) - Bump actions/checkout from 4 to 5, by [@dependabot[bot]](https://github.com/apps/dependabot)
+* [PR 137](https://github.com/pytroll/pygac-fdr/pull/137) - Migrate to pyproject.toml, by [@mraspaud](https://github.com/mraspaud)
+* [PR 135](https://github.com/pytroll/pygac-fdr/pull/135) - Bump pypa/gh-action-pypi-publish from 1.12.3 to 1.12.4, by [@dependabot[bot]](https://github.com/apps/dependabot)
+* [PR 134](https://github.com/pytroll/pygac-fdr/pull/134) - Bump pypa/gh-action-pypi-publish from 1.12.2 to 1.12.3, by [@dependabot[bot]](https://github.com/apps/dependabot)
+* [PR 133](https://github.com/pytroll/pygac-fdr/pull/133) - Bump codecov/codecov-action from 4 to 5, by [@dependabot[bot]](https://github.com/apps/dependabot)
+* [PR 132](https://github.com/pytroll/pygac-fdr/pull/132) - Bump pypa/gh-action-pypi-publish from 1.11.0 to 1.12.2, by [@dependabot[bot]](https://github.com/apps/dependabot)
+* [PR 131](https://github.com/pytroll/pygac-fdr/pull/131) - Bump pypa/gh-action-pypi-publish from 1.10.3 to 1.11.0, by [@dependabot[bot]](https://github.com/apps/dependabot)
+* [PR 130](https://github.com/pytroll/pygac-fdr/pull/130) - Bump pypa/gh-action-pypi-publish from 1.8.14 to 1.10.3, by [@dependabot[bot]](https://github.com/apps/dependabot)
+* [PR 129](https://github.com/pytroll/pygac-fdr/pull/129) - Fix netCDF encoding in tests, by [@sfinkens](https://github.com/sfinkens)
+* [PR 122](https://github.com/pytroll/pygac-fdr/pull/122) - Bump pypa/gh-action-pypi-publish from 1.8.12 to 1.8.14, by [@dependabot[bot]](https://github.com/apps/dependabot)
+* [PR 121](https://github.com/pytroll/pygac-fdr/pull/121) - Bump pypa/gh-action-pypi-publish from 1.8.11 to 1.8.12, by [@dependabot[bot]](https://github.com/apps/dependabot)
+* [PR 120](https://github.com/pytroll/pygac-fdr/pull/120) - Bump codecov/codecov-action from 3 to 4, by [@dependabot[bot]](https://github.com/apps/dependabot)
+* [PR 119](https://github.com/pytroll/pygac-fdr/pull/119) - Bump pypa/gh-action-pypi-publish from 1.8.10 to 1.8.11, by [@dependabot[bot]](https://github.com/apps/dependabot)
+
+In this release 20 pull requests were closed.
+
+
+## Version 0.2.3 (2023/11/28)
 
 ### Issues Closed
 
