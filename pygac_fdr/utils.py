@@ -1,21 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2020 pygac-fdr developers
-#
-# This file is part of pygac-fdr.
-#
-# pygac-fdr is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# pygac-fdr is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# pygac-fdr. If not, see <http://www.gnu.org/licenses/>.
-
 """Miscellaneous utilities."""
 
 import datetime
@@ -24,7 +6,6 @@ import tarfile
 
 import fsspec
 import satpy.utils
-
 
 _is_logging_on = False
 LOGGER_NAME = __package__
@@ -70,13 +51,14 @@ def logging_off(for_all=False):
 
 class TarFileSystem(fsspec.AbstractFileSystem):
     """Read contents of TAR archive as a file-system."""
+
     root_marker = ""
     max_depth = 20
 
     def __init__(self, tarball):
         super().__init__()
         self.tarball = tarball
-        self.tar = tarfile.open(tarball, mode='r')
+        self.tar = tarfile.open(tarball, mode="r")
 
     def __del__(self):
         self.close()
@@ -98,13 +80,13 @@ class TarFileSystem(fsspec.AbstractFileSystem):
         info = {
             "name": tarinfo.name,
             "size": tarinfo.size,
-            "type": "directory" if tarinfo.isdir() else "file"
+            "type": "directory" if tarinfo.isdir() else "file",
         }
         return info
 
     def _get_depth(self, path):
         if path:
-            depth = 1 + path.count('/')
+            depth = 1 + path.count("/")
         else:
             depth = 0
         return depth
@@ -116,14 +98,15 @@ class TarFileSystem(fsspec.AbstractFileSystem):
             result = [
                 self._get_info(tarinfo)
                 for tarinfo in self.tar.getmembers()
-                if (tarinfo.name.startswith(path)
-                    and self._get_depth(tarinfo.name) == depth)
+                if (
+                    tarinfo.name.startswith(path)
+                    and self._get_depth(tarinfo.name) == depth
+                )
             ]
-            result.sort(key=lambda item: item['name'])
+            result.sort(key=lambda item: item["name"])
         else:
             result = sorted(
-                name for name in self.tar.getnames()
-                if self._get_depth(name) == depth
+                name for name in self.tar.getnames() if self._get_depth(name) == depth
             )
         return result
 
@@ -132,7 +115,7 @@ class TarFileSystem(fsspec.AbstractFileSystem):
         tarinfo = self.tar.getmember(path)
         return datetime.datetime.fromtimestamp(tarinfo.mtime)
 
-    def _open(self, path, mode='rb', **kwargs):
+    def _open(self, path, mode="rb", **kwargs):
         if mode != "rb":
             raise ValueError("Only mode 'rb' is allowed!")
         return self.tar.extractfile(path)

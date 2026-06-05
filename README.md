@@ -7,6 +7,8 @@ Python package for creating a Fundamental Data Record (FDR) of AVHRR GAC data us
 [![PyPI version](https://badge.fury.io/py/pygac-fdr.svg)](https://badge.fury.io/py/pygac-fdr)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5762183.svg)](https://doi.org/10.5281/zenodo.5762183)
 
+
+
 Installation
 ============
 
@@ -88,3 +90,21 @@ $ pygac-fdr-crop AVHRR-GAC_FDR_1C_N06_19810330T225108Z_19810331T003506Z_...nc --
 ```
 
 The returned numbers are start- and end-scanline (0-based).
+
+
+License
+=======
+
+Copyright 2020 pygac-fdr developers
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.

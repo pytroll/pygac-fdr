@@ -1,21 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2020 pygac-fdr developers
-#
-# This file is part of pygac-fdr.
-#
-# pygac-fdr is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# pygac-fdr is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# pygac-fdr. If not, see <http://www.gnu.org/licenses/>.
-
 """Collect and complement L1C metadata."""
 
 import logging
@@ -227,14 +209,13 @@ class MetadataEnhancer:
 
     def _set_global_quality_flag(self, df):
         LOG.info("Computing quality flags")
-        grouped = df.groupby("platform", as_index=False, group_keys=False)
+        grouped = df.groupby("platform")
         return grouped.apply(
             lambda x: self._set_global_qual_flags_single_platform(x, x.name)
         )
 
     def _set_global_qual_flags_single_platform(self, df, platform):
         """Set global quality flags."""
-        df = df.reset_index(drop=True)
         self._set_invalid_timestamp_flag(df, platform)
         self._set_too_short_flag(df)
         self._set_too_long_flag(df)
@@ -303,9 +284,7 @@ class MetadataEnhancer:
         Two files are considered equal if platform, start- and end-time are identical. This happens
         if the same measurement has been transferred to two different ground stations.
         """
-        gs_dupl = df.duplicated(
-            subset=["platform", "start_time", "end_time"], keep="first"
-        )
+        gs_dupl = df.duplicated(subset=["start_time", "end_time"], keep="first")
         df.loc[gs_dupl, "global_quality_flag"] = QualityFlags.DUPLICATE
 
     def _set_invalid_timestamp_flag(self, df, platform):
@@ -378,7 +357,9 @@ class MetadataEnhancer:
             if prev_row is not None:
                 if prev_row["end_time"] >= this_row["start_time"]:
                     prev_end_time = prev_row["end_time"].to_datetime64()
-                    overlap_free_start = (this_time > prev_end_time).argmax().values
+                    overlap_free_start = (
+                        (this_time > prev_end_time).argmax(axis=0).values
+                    )
                 else:
                     overlap_free_start = 0
                 df.loc[df_ok.index[i], "overlap_free_start"] = overlap_free_start
@@ -390,9 +371,9 @@ class MetadataEnhancer:
             if next_row is not None:
                 if this_row["end_time"] >= next_row["start_time"]:
                     next_start_time = next_row["start_time"].to_datetime64()
-                    overlap_free_end = (
-                        this_time >= next_start_time
-                    ).argmax().values - 1
+                    overlap_free_end = (this_time >= next_start_time).argmax(
+                        axis=0
+                    ).values - 1
                 else:
                     overlap_free_end = this_row["along_track"] - 1
                 df.loc[df_ok.index[i], "overlap_free_end"] = overlap_free_end
