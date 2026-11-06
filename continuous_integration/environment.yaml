@@ -6,6 +6,7 @@ dependencies:
   - pip
   - numpy
   - pandas
+  - dask
   - xarray
   - netcdf4
   - h5py
