@@ -4,6 +4,7 @@ import logging
 import sqlite3
 from datetime import datetime
 from enum import IntEnum
+from typing import Optional
 
 import netCDF4
 import numpy as np
@@ -44,64 +45,6 @@ class QualityFlags(IntEnum):
     REDUNDANT = 5  # subset of another file
 
 
-FILL_VALUE_INT = -9999
-FILL_VALUE_FLOAT = -9999.0
-
-ADDITIONAL_METADATA = [
-    {
-        "name": "overlap_free_start",
-        "long_name": "First scanline (0-based) of the overlap-free part of this file. Scanlines "
-        "before that also appear in the preceding file.",
-        "dtype": np.int16,
-        "fill_value": FILL_VALUE_INT,
-    },
-    {
-        "name": "overlap_free_end",
-        "long_name": "Last scanline (0-based) of the overlap-free part of this file. Scanlines "
-        "hereafter also appear in the subsequent file.",
-        "dtype": np.int16,
-        "fill_value": FILL_VALUE_INT,
-    },
-    {
-        "name": "midnight_line",
-        "long_name": "Scanline (0-based) where UTC timestamp crosses the dateline",
-        "dtype": np.int16,
-        "fill_value": FILL_VALUE_INT,
-    },
-    {
-        "name": "equator_crossing_longitude",
-        "long_name": "Longitude where ascending node crosses the equator",
-        "comment": "Can happen twice per file",
-        "units": "degrees_east",
-        "dtype": np.float64,
-        "fill_value": FILL_VALUE_FLOAT,
-    },
-    {
-        "name": "equator_crossing_time",
-        "long_name": "UTC time when ascending node crosses the equator",
-        "comment": "Can happen twice per file",
-        "units": "seconds since 1970-01-01 00:00:00",
-        "calendar": "standard",
-        "dtype": np.float64,
-        "fill_value": FILL_VALUE_FLOAT,
-    },
-    {
-        "name": "global_quality_flag",
-        "long_name": "Global quality flag",
-        "comment": 'If this flag is everything else than "ok", it is recommended not '
-        "to use the file.",
-        "flag_values": np.array(
-            [flag.value for flag in QualityFlags.__members__.values()], dtype=np.uint8
-        ),
-        "flag_meanings": " ".join(
-            [name.lower() for name in QualityFlags.__members__.keys()]
-        ),
-        "dtype": np.uint8,
-        "fill_value": None,
-    },
-]
-
-
 class MetadataCollector:
     """Collect metadata from level 1c files."""
 
@@ -117,7 +60,7 @@ class MetadataCollector:
                     "platform": ds.attrs["platform"].split(">")[-1].strip(),
                     "start_time": ds["acq_time"].values[0],
                     "end_time": ds["acq_time"].values[-1],
-                    "along_track": ds.dims["y"],
+                    "along_track": ds.sizes["y"],
                     "filename": filename,
                     "orbit_number_start": ds.attrs["orbit_number_start"],
                     "orbit_number_end": ds.attrs["orbit_number_end"],
@@ -171,7 +114,7 @@ class MetadataCollector:
         num_cross = min(2, len(lat_eq))  # Two crossings max
         eq_cross_lons = np.full(2, np.nan)
         eq_cross_times = np.full(
-            2, np.datetime64("NaT"), dtype=lat_eq["acq_time"].dtype
+            2, np.datetime64("NaT", "ns"), dtype=lat_eq["acq_time"].dtype
         )
         eq_cross_lons[0:num_cross] = lat_eq["longitude"].values[0:num_cross]
         eq_cross_times[0:num_cross] = lat_eq["acq_time"].values[0:num_cross]
@@ -198,14 +141,14 @@ class MetadataEnhancer:
 
     def enhance_metadata(self, df):
         """Complement metadata from level 1c files."""
-        self._sort_by_ascending_time(df)
+        df = self._sort_by_ascending_time(df)
         df = self._set_global_quality_flag(df)
         df = self._calc_overlap(df)
         df = self._update_index(df)
         return df
 
     def _sort_by_ascending_time(self, df):
-        df.sort_values(by=["start_time", "end_time"], inplace=True)
+        return df.sort_values(by=["start_time", "end_time"])
 
     def _set_global_quality_flag(self, df):
         LOG.info("Computing quality flags")
@@ -432,96 +375,217 @@ def _cast_time_columns_to_datetime(mda):
 
 
 class MetadataUpdater:
-    def update(self, mda):
+    scalar_vars = [
+        "overlap_free_start",
+        "overlap_free_end",
+        "midnight_line",
+        "global_quality_flag",
+    ]
+    array_vars = ["equator_crossing_longitude", "equator_crossing_time"]
+    attrs = {
+        "overlap_free_start": {
+            "long_name": "First scanline (0-based) of the overlap-free part of this file. Scanlines "
+            "before that also appear in the preceding file.",
+        },
+        "overlap_free_end": {
+            "long_name": "Last scanline (0-based) of the overlap-free part of this file. Scanlines "
+            "hereafter also appear in the subsequent file.",
+        },
+        "midnight_line": {
+            "long_name": "Scanline (0-based) where UTC timestamp crosses the dateline",
+        },
+        "equator_crossing_longitude": {
+            "long_name": "Longitude where ascending node crosses the equator",
+            "comment": "Can happen twice per file",
+            "units": "degrees_east",
+        },
+        "equator_crossing_time": {
+            "long_name": "UTC time when ascending node crosses the equator",
+            "comment": "Can happen twice per file",
+            "units": "seconds since 1970-01-01 00:00:00",
+            "calendar": "standard",
+        },
+        "global_quality_flag": {
+            "long_name": "Global quality flag",
+            "comment": 'If this flag is everything else than "ok", it is recommended not '
+            "to use the file.",
+            "flag_values": np.array(
+                [flag.value for flag in QualityFlags.__members__.values()],
+                dtype=np.uint8,
+            ),
+            "flag_meanings": " ".join(
+                [name.lower() for name in QualityFlags.__members__.keys()]
+            ),
+        },
+    }
+    fill_value_int = -9999
+    fill_value_float = -9999.0
+    encoding = {
+        "overlap_free_start": {"dtype": np.int16, "fill_value": fill_value_int},
+        "overlap_free_end": {"dtype": np.int16, "fill_value": fill_value_int},
+        "midnight_line": {"dtype": np.int16, "fill_value": fill_value_int},
+        "equator_crossing_longitude": {
+            "dtype": np.float64,
+            "fill_value": fill_value_float,
+        },
+        "equator_crossing_time": {"dtype": np.float64, "fill_value": fill_value_float},
+        "global_quality_flag": {"dtype": np.uint8, "fill_value": None},
+    }
+
+    def update(self, mda: pd.DataFrame) -> None:
         """Add additional metadata to level 1c files.
 
         Since xarray cannot modify files in-place, use netCDF4 directly. See
         https://github.com/pydata/xarray/issues/2029.
+
+        Expected data frame layout:
+
+                                               start_time                end_time  ...
+        platform_index file_index                                                  ...
+        NOAA-6         0          1981-03-30 00:54:21.206 1981-03-30 02:46:32.706  ...
+                       1          1981-03-30 02:42:39.206 1981-03-30 04:27:59.706  ...
+                       2          1981-03-30 04:23:58.206 1981-03-30 06:09:04.206  ...
         """
-        mda = self._to_xarray(mda)
-        mda = self._stack(mda)
-        for irow in range(mda.dims["row"]):
-            row = mda.isel(row=irow)
-            LOG.debug("Updating metadata in {}".format(row["filename"].item()))
-            with netCDF4.Dataset(filename=row["filename"].item(), mode="r+") as nc:
+        for _, row in mda.iterrows():
+            LOG.debug("Updating metadata in {}".format(row["filename"]))
+            with netCDF4.Dataset(filename=row["filename"], mode="r+") as nc:
                 self._update_file(nc=nc, row=row)
 
-    def _to_xarray(self, mda):
-        """Convert pandas DataFrame to xarray Dataset."""
-        mda = xr.Dataset(mda)
-        mda = mda.rename({"dim_0": "row"})
-        return mda
+    def _update_file(self, nc: netCDF4.Dataset, row: pd.Series) -> None:
+        """Update metadata of a single file.
 
-    def _stack(self, mda):
-        """Stack certain columns to simplify the netCDF file."""
-        # Stack equator crossing longitudes/times along a new dimension
-        mda["equator_crossing_time"] = (
-            ("row", "num_eq_cross"),
-            np.stack(
-                [
-                    mda["equator_crossing_time_1"].values,
-                    mda["equator_crossing_time_2"].values,
-                ]
-            ).transpose(),
-        )
-        mda["equator_crossing_longitude"] = (
-            ("row", "num_eq_cross"),
-            np.stack(
-                [
-                    mda["equator_crossing_longitude_1"].values,
-                    mda["equator_crossing_longitude_2"].values,
-                ]
-            ).transpose(),
-        )
-        return mda
+        Expected columns in each row:
 
-    def _create_nc_var(self, nc, var_name, fill_value, dtype, shape, dims):
+        start_time                                             1981-03-30 22:51:08.706000
+        end_time                                               1981-03-31 00:35:07.206000
+        along_track                                                                 12474
+        filename                        test_data/output/normal/AVHRR-GAC_FDR_1C_N06_1...
+        orbit_number_start                                                           9133
+        orbit_number_end                                                             9134
+        equator_crossing_longitude_1                                              -48.094
+        equator_crossing_time_1                                1981-03-30 22:51:44.206000
+        equator_crossing_longitude_2                                              -73.398
+        equator_crossing_time_2                                1981-03-31 00:32:57.706000
+        midnight_line                                                              8260.0
+        overlap_free_start                                                          608.0
+        overlap_free_end                                                          12473.0
+        global_quality_flag                                                             0
+        """
+        self._add_scalar_vars(nc, row)
+        self._add_array_vars(nc, row)
+
+    def _add_scalar_vars(self, nc: netCDF4.Dataset, row: pd.Series) -> None:
+        for var_name in self.scalar_vars:
+            self._add_scalar_variable(nc, row[var_name], var_name)
+
+    def _stack_eq_crossings(self, row: pd.Series) -> pd.DataFrame:
+        """Stack equator crossings to simplify the netCDF file.
+
+        Returns a data frame with this layout:
+
+            equator_crossing_time  equator_crossing_longitude
+        0 1981-03-30 00:55:43.706                     -79.094
+        1 1981-03-30 02:36:57.706                    -104.398
+        """
+        return pd.DataFrame(
+            {
+                "equator_crossing_time": [
+                    row["equator_crossing_time_1"],
+                    row["equator_crossing_time_2"],
+                ],
+                "equator_crossing_longitude": [
+                    row["equator_crossing_longitude_1"],
+                    row["equator_crossing_longitude_2"],
+                ],
+            },
+        )
+
+    def _add_scalar_variable(
+        self, nc: netCDF4.Dataset, data: np.ndarray, var_name: str
+    ) -> None:
+        nc_var = self._create_nc_var(
+            nc=nc,
+            var_name=var_name,
+        )
+        self._write_data(nc_var, self._encode_scalar(data, var_name))
+        self._set_var_attrs(nc_var)
+
+    def _create_nc_var(
+        self,
+        nc: netCDF4.Dataset,
+        var_name: str,
+        new_dims: Optional[dict[str, int]] = None,
+    ) -> netCDF4.Variable:
         """Create netCDF variable and dimension."""
-        # Create dimension if needed (only 1D at the moment)
-        if dims:
-            dim_name, size = dims[0], shape[0]
-            if dim_name not in nc.dimensions:
-                nc.createDimension(dim_name, size=size)
-
-        # Create nc variable
+        if new_dims:
+            for dim_name, size in new_dims.items():
+                if dim_name not in nc.dimensions:
+                    nc.createDimension(dim_name, size=size)
         if var_name in nc.variables:
-            nc_var = nc.variables[var_name]
-        else:
-            nc_var = nc.createVariable(
-                var_name, datatype=dtype, fill_value=fill_value, dimensions=dims
+            return nc.variables[var_name]
+        return nc.createVariable(
+            var_name,
+            datatype=self.encoding[var_name]["dtype"],
+            fill_value=self.encoding[var_name]["fill_value"],
+            dimensions=tuple(new_dims.keys()) if new_dims else (),
+        )
+
+    def _encode_scalar(self, data: float | int | pd.Timestamp, var_name: str) -> float:
+        fill_value = self.encoding[var_name]["fill_value"]
+        attrs = self.attrs[var_name]
+        if isinstance(data, pd.Timestamp):
+            data, _, _ = encode_cf_datetime(
+                data.to_datetime64(), units=attrs["units"], calendar=attrs["calendar"]
             )
-        return nc_var
+        return np.nan_to_num(data, nan=fill_value)
 
-    def _update_file(self, nc, row):
-        """Update metadata of a single file."""
-        for add_mda in ADDITIONAL_METADATA:
-            add_mda = add_mda.copy()
-            var_name = add_mda.pop("name")
-            fill_value = add_mda.pop("fill_value")
-            data = row[var_name]
+    def _write_data(self, nc_var: netCDF4.Variable, encoded_data: np.ndarray) -> None:
+        # Write data to nc variable. Since netCDF4 cannot handle NaN nor NaT, disable
+        # auto-masking, and write encoded data directly.
+        nc_var.set_auto_mask(False)
+        nc_var[:] = encoded_data
 
-            # Create nc variable
-            nc_var = self._create_nc_var(
+    def _add_array_vars(self, nc: netCDF4.Dataset, row: pd.Series) -> None:
+        crossings = self._stack_eq_crossings(row)
+        for var_name in self.array_vars:
+            self._add_array_var(
                 nc=nc,
+                data=crossings[var_name].values,
                 var_name=var_name,
-                fill_value=fill_value,
-                dtype=add_mda.pop("dtype"),
-                dims=data.dims,
-                shape=data.shape,
+                new_dims={"num_eq_cross": 2},
             )
 
-            # Write data to nc variable. Since netCDF4 cannot handle NaN nor NaT, disable
-            # auto-masking, and set null-data to fill value manually.
-            nc_var.set_auto_mask(False)
-            if np.issubdtype(data.dtype, np.datetime64):
-                data, _, _ = encode_cf_datetime(
-                    data, units=add_mda["units"], calendar=add_mda["calendar"]
-                )
-                data = np.nan_to_num(data, nan=fill_value)
-            else:
-                data = data.fillna(fill_value).values
-            nc_var[:] = data
+    def _add_array_var(
+        self,
+        nc: netCDF4.Dataset,
+        data: np.ndarray,
+        var_name: str,
+        new_dims: dict[str, int],
+    ) -> None:
+        nc_var = self._create_nc_var(nc=nc, var_name=var_name, new_dims=new_dims)
+        nc_var.set_auto_mask(False)
+        nc_var[:] = self._encode_array(data, var_name)
+        self._set_var_attrs(nc_var)
 
-            # Set attributes of nc variable
-            for key, val in add_mda.items():
-                nc_var.setncattr(key, val)
+    def _encode_array(self, data: np.ndarray, var_name: str) -> np.ndarray:
+        fill_value = self.encoding[var_name]["fill_value"]
+        attrs = self.attrs[var_name]
+        if np.issubdtype(data.dtype, np.datetime64):
+            if np.all(np.isnan(data)):
+                # xarray fails to encode all-NaT array
+                encoded = np.full(data.shape, np.nan)
+            else:
+                encoded, _, _ = encode_cf_datetime(
+                    data,
+                    units=attrs["units"],
+                    calendar=attrs["calendar"],
+                    dtype=self.encoding[var_name]["dtype"],
+                )
+        else:
+            encoded = data
+        return np.nan_to_num(encoded, nan=fill_value)
+
+    def _set_var_attrs(self, nc_var: netCDF4.Variable) -> None:
+        attrs = self.attrs[nc_var.name]
+        for key, val in attrs.items():
+            nc_var.setncattr(key, val)
