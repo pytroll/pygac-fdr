@@ -28,14 +28,14 @@ Usage
 To read and calibrate AVHRR GAC level 1b data, adapt the config template in `etc/pygac-fdr.yaml`, then
 run:
 ```
-pygac-fdr-run --cfg=my_config.yaml /data/avhrr_gac/NSS.GHRR.M1.D20021.S0*
+pygac-fdr run --cfg=my_config.yaml /data/avhrr_gac/NSS.GHRR.M1.D20021.S0*
 ```
 
 Results are written into the specified output directory in netCDF format. Afterwards, collect and
 complement metadata of the generated netCDF files:
 
 ```
-pygac-fdr-mda-collect --dbfile=test.sqlite3 /data/avhrr_gac/output/*
+pygac-fdr mda collect --dbfile=test.sqlite3 /data/avhrr_gac/output/*
 ```
 
 This might take some time, so the results are saved into a database. You can specify files from
@@ -45,13 +45,13 @@ too long"). In this case use the following command to read the list of filenames
 (one per line):
 
 ```
-pygac-fdr-mda-collect --dbfile=test.sqlite3 @myfiles.txt
+pygac-fdr mda collect --dbfile=test.sqlite3 @myfiles.txt
 ```
 
 Finally, update the netCDF metadata inplace:
 
 ```
-pygac-fdr-mda-update --dbfile=test.sqlite3
+pygac-fdr mda update --dbfile=test.sqlite3
 ```
 
 Tips for AVHRR GAC FDR Users
@@ -79,13 +79,13 @@ ways to remove it:
 
 If, in addition, users want to create daily composites, a file containing observations from two days has to be used
 twice: Once only the part before UTC 00:00, and once only the part after UTC 00:00. Cropping overlap and day together
-is a little bit more complex, because the overlap might cover UTC 00:00. That is why the `pygac-fdr-crop` utility is
+is a little bit more complex, because the overlap might cover UTC 00:00. That is why the `pygac-fdr crop` utility is
 provided:
 
 ```
-$ pygac-fdr-crop AVHRR-GAC_FDR_1C_N06_19810330T225108Z_19810331T003506Z_...nc --date 19810330
+$ pygac-fdr crop AVHRR-GAC_FDR_1C_N06_19810330T225108Z_19810331T003506Z_...nc --date 19810330
 0 8260
-$ pygac-fdr-crop AVHRR-GAC_FDR_1C_N06_19810330T225108Z_19810331T003506Z_...nc --date 19810331
+$ pygac-fdr crop AVHRR-GAC_FDR_1C_N06_19810330T225108Z_19810331T003506Z_...nc --date 19810331
 8261 12472
 ```
 

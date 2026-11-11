@@ -20,7 +20,6 @@ reason pytest caches all generated figures until the end of the test suite.
 import gzip
 import logging
 import shutil
-import subprocess
 import unittest
 from pathlib import Path
 
@@ -28,14 +27,26 @@ import numpy as np
 import xarray as xr
 import yaml
 from cfchecker.cfchecks import CFChecker
+from click.testing import CliRunner
 from dateutil.parser import isoparse
 from xarray.core.formatting import diff_attrs_repr
 from xarray.core.utils import dict_equiv
 
 from pygac_fdr.metadata import QualityFlags
+from pygac_fdr.scripts.cli import cli
 from pygac_fdr.utils import LOGGER_NAME, logging_on
 
 LOG = logging.getLogger(LOGGER_NAME)
+
+
+def _call_cli(cmd):
+    runner = CliRunner()
+    res = runner.invoke(cli, cmd, catch_exceptions=False)
+    assert res.exit_code == 0, res.output
+
+
+def _paths_to_strings(file_paths: list[Path]) -> list[str]:
+    return list(map(str, file_paths))
 
 
 class EndToEndTestBase(unittest.TestCase):
@@ -153,34 +164,35 @@ class EndToEndTestBase(unittest.TestCase):
 
         # Read GAC files and write netCDF files
         run = [
-            "pygac-fdr-run",
+            "run",
             "--cfg",
-            cls.cfg_file,
+            str(cls.cfg_file),
             "--output-dir",
-            cls.output_dir,
+            str(cls.output_dir),
             "--tle-dir",
-            cls.tle_dir,
+            str(cls.tle_dir),
             "--verbose",
             "--log-all",
-        ] + gac_files
-        subprocess.run(run, check=True)
+        ] + _paths_to_strings(gac_files)
+        _call_cli(run)
         nc_files = sorted(Path(cls.output_dir).glob("*.nc"))
 
         if dbfile:
             # Collect & complement metadata
             collect = [
-                "pygac-fdr-mda-collect",
+                "mda",
+                "collect",
                 "--dbfile",
-                dbfile,
+                str(dbfile),
                 "--if-exists",
                 "replace",
                 "--verbose",
-            ] + nc_files
-            subprocess.run(collect, check=True)
+            ] + _paths_to_strings(nc_files)
+            _call_cli(collect)
 
             # Update metadata
-            update = ["pygac-fdr-mda-update", "--dbfile", dbfile]
-            subprocess.run(update, check=True)
+            update = ["mda", "update", "--dbfile", str(dbfile)]
+            _call_cli(update)
 
         return nc_files
 
@@ -208,8 +220,8 @@ class EndToEndTestBase(unittest.TestCase):
             LOG.info("Performing regression test with {}".format(nc_file))
             with (
                 self.subTest(nc_file=nc_file),
-                xr.open_dataset(nc_file, chunks=1024) as ds,
-                xr.open_dataset(nc_file_ref, chunks=1024) as ds_ref,
+                xr.open_dataset(nc_file) as ds,
+                xr.open_dataset(nc_file_ref) as ds_ref,
             ):
                 # Remove dynamic attributes
                 for attr in dynamic_attrs:
@@ -254,8 +266,13 @@ class EndToEndTestBase(unittest.TestCase):
             "brightness_temperature_channel_3b": {},
             "brightness_temperature_channel_4": {},
             "brightness_temperature_channel_5": {},
-            "longitude": {"vmin": -180, "vmax": 180},
-            "latitude": {"vmin": -90, "vmax": 90},
+            "longitude": {
+                "vmin": -180,
+                "vmax": 180,
+                "vmin_diff": -0.1,
+                "vmax_diff": 0.1,
+            },
+            "latitude": {"vmin": -90, "vmax": 90, "vmin_diff": -0.1, "vmax_diff": 0.1},
             "solar_zenith_angle": {},
             "solar_azimuth_angle": {},
             "sensor_zenith_angle": {},
@@ -285,8 +302,8 @@ class EndToEndTestBase(unittest.TestCase):
             )
             diff.transpose().plot.imshow(
                 ax=ax_diff,
-                vmin=-0.8 * abs_max_diff,
-                vmax=0.8 * abs_max_diff,
+                vmin=prop.get("vmin_diff", -0.8 * abs_max_diff),
+                vmax=prop.get("vmax_diff", 0.8 * abs_max_diff),
                 cmap="RdBu_r",
             )
 

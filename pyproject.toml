@@ -21,6 +21,7 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
+    "click",
     "fsspec",
     "h5py",
     "netCDF4",
@@ -48,6 +49,9 @@ tests = [
 [project.urls]
 Homepage = "https://github.com/pytroll/pygac-fdr"
 
+[project.scripts]
+pygac-fdr = "scripts.cli:cli"
+
 [tool.hatch.version]
 source = "vcs"
 
@@ -61,6 +65,7 @@ include = [
 
 [tool.ruff]
 line-length = 120
+exclude = ["pygac_fdr/validation.py"]
 
 [tool.ruff.lint]
 # See https://docs.astral.sh/ruff/rules/

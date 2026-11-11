@@ -30,7 +30,7 @@ def fetch_test_data(url, target_dir):
         "--no-parent",
         "--cut-dirs",
         str(cut_dirs),
-        '--reject="index.html*"',
+        "--reject=index.html",
         url,
     ]
     subprocess.run(cmd, cwd=target_dir, check=True)
