@@ -10,7 +10,7 @@ import click
 import pandas as pd
 import satpy
 from dateutil.parser import isoparse
-from satpy.readers import FSFile
+from satpy.readers.core.remote import FSFile
 
 import pygac_fdr.validation as validation
 from pygac_fdr.config import read_config
