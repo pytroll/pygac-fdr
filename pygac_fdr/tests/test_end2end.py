@@ -11,9 +11,11 @@ Configure test data, cleanup, tolerances and plotting in test_end2end.yaml.
 import gzip
 import logging
 import shutil
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
@@ -22,6 +24,7 @@ import yaml
 from cfchecker.cfchecks import CFChecker
 from click.testing import CliRunner
 from dateutil.parser import isoparse
+from pytest_subtests import SubTests
 from xarray.core.formatting import diff_attrs_repr
 from xarray.core.utils import dict_equiv
 
@@ -148,13 +151,13 @@ def _paths_to_strings(file_paths: list[Path]) -> list[str]:
     return list(map(str, file_paths))
 
 
-def _call_cli(command):
+def _call_cli(command: list[str]) -> None:
     result = CliRunner().invoke(cli, command, catch_exceptions=False)
     assert result.exit_code == 0, result.output
 
 
 @pytest.fixture(scope="module")
-def test_config():
+def test_config() -> EndToEndConfig:
     logging_on(logging.DEBUG, for_all=True)
 
     with open(Path(__file__).with_name("test_end2end.yaml")) as fh:
@@ -181,14 +184,14 @@ def test_config():
     return config
 
 
-def _cleanup_output_dir(output_dir, *, enabled):
+def _cleanup_output_dir(output_dir: Path, *, enabled: bool) -> None:
     if enabled and output_dir.exists():
         for item in output_dir.iterdir():
             if item.is_file():
                 item.unlink()
 
 
-def _unzip_gac_files(filenames_gz, output_dir):
+def _unzip_gac_files(filenames_gz: list[Path], output_dir: Path) -> list[Path]:
     filenames = []
     for filename_gz in filenames_gz:
         filename = output_dir / filename_gz.stem
@@ -200,7 +203,9 @@ def _unzip_gac_files(filenames_gz, output_dir):
     return filenames
 
 
-def _generate_l1c_files(config, variant, *, with_metadata):
+def _generate_l1c_files(
+    config: EndToEndConfig, variant: str, *, with_metadata: bool
+) -> list[Path]:
     input_dir = config.input_dir / variant
     output_dir = config.output_dir / variant
 
@@ -219,7 +224,7 @@ def _generate_l1c_files(config, variant, *, with_metadata):
     return l1c_files
 
 
-def _collect_l1c_files_from_previous_run(output_dir, fast):
+def _collect_l1c_files_from_previous_run(output_dir: Path, fast: bool) -> list[Path]:
     l1c_files = sorted(output_dir.glob("*.nc"))
     if fast:
         l1c_files = l1c_files[-1:]
@@ -228,14 +233,16 @@ def _collect_l1c_files_from_previous_run(output_dir, fast):
     return l1c_files
 
 
-def _collect_l1b_gz_files(input_dir, fast):
+def _collect_l1b_gz_files(input_dir: Path, fast: bool) -> list[Path]:
     l1b_files_gz = sorted(input_dir.glob("*.gz"))
     if fast:
         return l1b_files_gz[-1:]
     return l1b_files_gz
 
 
-def _run_pygac_fdr(l1b_files, cfg_file, tle_dir, output_dir):
+def _run_pygac_fdr(
+    l1b_files: list[Path], cfg_file: Path, tle_dir: Path, output_dir: Path
+) -> list[Path]:
     cmd = [
         "run",
         "--cfg",
@@ -251,7 +258,7 @@ def _run_pygac_fdr(l1b_files, cfg_file, tle_dir, output_dir):
     return sorted(output_dir.glob("*.nc"))
 
 
-def _update_metadata(l1c_files, output_dir):
+def _update_metadata(l1c_files: list[Path], output_dir: Path) -> None:
     dbfile = output_dir / "test.sqlite3"
     collect = [
         "mda",
@@ -267,7 +274,7 @@ def _update_metadata(l1c_files, output_dir):
 
 
 @pytest.fixture(scope="module")
-def l1c_files_normal(test_config):
+def l1c_files_normal(test_config: EndToEndConfig) -> Iterator[list[Path]]:
     try:
         yield _generate_l1c_files(test_config, "normal", with_metadata=True)
     finally:
@@ -278,7 +285,7 @@ def l1c_files_normal(test_config):
 
 
 @pytest.fixture(scope="module")
-def l1c_files_corrupt(test_config):
+def l1c_files_corrupt(test_config: EndToEndConfig) -> Iterator[list[Path]]:
     try:
         yield _generate_l1c_files(test_config, "corrupt", with_metadata=False)
     finally:
@@ -289,12 +296,14 @@ def l1c_files_corrupt(test_config):
 
 
 @pytest.fixture
-def l1c_files(request, variant):
+def l1c_files(request: pytest.FixtureRequest, variant: str) -> list[Path]:
     return request.getfixturevalue(f"l1c_files_{variant}")
 
 
 @pytest.mark.parametrize("variant", ["normal", "corrupt"])
-def test_l1c_files_generated(variant, l1c_files, test_config):
+def test_l1c_files_generated(
+    variant: str, l1c_files: list[Path], test_config: EndToEndConfig
+) -> None:
     ref_dir = test_config.output_ref_dir / variant
     names_exp = [f.name for f in sorted(ref_dir.glob("*.nc"))]
     names_actual = [f.name for f in sorted(l1c_files)]
@@ -302,14 +311,21 @@ def test_l1c_files_generated(variant, l1c_files, test_config):
 
 
 @pytest.mark.parametrize("variant", ["normal", "corrupt"])
-def test_l1c_files_equal_reference(variant, l1c_files, test_config, subtests):
+def test_l1c_files_equal_reference(
+    variant: str,
+    l1c_files: list[Path],
+    test_config: EndToEndConfig,
+    subtests: SubTests,
+) -> None:
     config = test_config
     for output_file in l1c_files:
         with subtests.test(file=output_file.name):
             _compare_to_reference(output_file, variant, config)
 
 
-def _compare_to_reference(output_file, variant, config):
+def _compare_to_reference(
+    output_file: Path, variant: str, config: EndToEndConfig
+) -> None:
     ds_tst, ds_ref = _read_file_pair(output_file, variant, config.output_ref_dir)
     ds_tst, ds_ref = _prepare_datasets_for_comparison(ds_tst, ds_ref, config)
     plot_on_failure = _plot_diffs_on_failure(
@@ -321,7 +337,9 @@ def _compare_to_reference(output_file, variant, config):
     _assert_variable_attrs_equal(ds_tst, ds_ref)
 
 
-def _read_file_pair(output_file, variant, ref_dir):
+def _read_file_pair(
+    output_file: Path, variant: str, ref_dir: Path
+) -> tuple[xr.Dataset, xr.Dataset]:
     reference_file = ref_dir / variant / output_file.name
     with (
         xr.open_dataset(output_file) as ds_tst,
@@ -330,7 +348,9 @@ def _read_file_pair(output_file, variant, ref_dir):
         return ds_tst, ds_ref
 
 
-def _prepare_datasets_for_comparison(ds_tst, ds_ref, test_config):
+def _prepare_datasets_for_comparison(
+    ds_tst: xr.Dataset, ds_ref: xr.Dataset, test_config: EndToEndConfig
+) -> tuple[xr.Dataset, xr.Dataset]:
     for attr in DYNAMIC_ATTRS:
         ds_tst.attrs.pop(attr)
         ds_ref.attrs.pop(attr)
@@ -348,7 +368,9 @@ def _prepare_datasets_for_comparison(ds_tst, ds_ref, test_config):
     return ds_tst, ds_ref
 
 
-def _assert_datasets_close(ds_tst, ds_ref, test_config):
+def _assert_datasets_close(
+    ds_tst: xr.Dataset, ds_ref: xr.Dataset, test_config: EndToEndConfig
+) -> None:
     xr.testing.assert_allclose(
         ds_tst,
         ds_ref,
@@ -357,7 +379,9 @@ def _assert_datasets_close(ds_tst, ds_ref, test_config):
     )
 
 
-def _assert_global_attrs_close(actual, expected, config):
+def _assert_global_attrs_close(
+    actual: dict[str, Any], expected: dict[str, Any], config: EndToEndConfig
+) -> None:
     actual = actual.copy()
     expected = expected.copy()
 
@@ -378,7 +402,7 @@ def _assert_global_attrs_close(actual, expected, config):
     assert dict_equiv(actual, expected), diff_attrs_repr(actual, expected, "identical")
 
 
-def _assert_variable_attrs_equal(actual, expected):
+def _assert_variable_attrs_equal(actual: xr.Dataset, expected: xr.Dataset) -> None:
     assert set(actual.variables) == set(expected.variables)
     for name in actual.variables:
         actual_attrs = actual[name].attrs
@@ -389,7 +413,13 @@ def _assert_variable_attrs_equal(actual, expected):
 
 
 @contextmanager
-def _plot_diffs_on_failure(ds_tst, ds_ref, output_file, *, enabled):
+def _plot_diffs_on_failure(
+    ds_tst: xr.Dataset,
+    ds_ref: xr.Dataset,
+    output_file: Path,
+    *,
+    enabled: bool,
+) -> Iterator[None]:
     try:
         yield
     except AssertionError:
@@ -399,7 +429,7 @@ def _plot_diffs_on_failure(ds_tst, ds_ref, output_file, *, enabled):
         raise
 
 
-def _plot_diffs(ds_tst, ds_ref, output_file):
+def _plot_diffs(ds_tst: xr.Dataset, ds_ref: xr.Dataset, output_file: Path) -> None:
     """Save difference plots."""
     import matplotlib.pyplot as plt
 
@@ -476,7 +506,7 @@ def _plot_diffs(ds_tst, ds_ref, output_file):
             plt.close(fig)
 
 
-def test_l1c_metadata_clara(l1c_files_normal, subtests):
+def test_l1c_metadata_clara(l1c_files_normal: list[Path], subtests: SubTests) -> None:
     """Compare normal-file metadata against CLARA-A3 expectations."""
     for output_file in l1c_files_normal:
         with subtests.test(file=output_file.name):
@@ -491,7 +521,9 @@ def test_l1c_metadata_clara(l1c_files_normal, subtests):
                     )
 
 
-def test_l1c_files_are_cf_compliant(l1c_files_normal, subtests):
+def test_l1c_files_are_cf_compliant(
+    l1c_files_normal: list[Path], subtests: SubTests
+) -> None:
     """Check generated normal files for CF errors and fatal errors."""
     checker = CFChecker()
     for output_file in l1c_files_normal:
