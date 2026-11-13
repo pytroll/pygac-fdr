@@ -4,7 +4,6 @@ import logging
 import os
 import warnings
 from datetime import datetime
-from distutils.version import StrictVersion
 from string import Formatter
 
 import netCDF4
@@ -12,6 +11,7 @@ import numpy as np
 import pygac
 import satpy
 import xarray as xr
+from packaging.version import Version
 
 import pygac_fdr
 from pygac_fdr.metadata import TIME_COVERAGE
@@ -35,6 +35,7 @@ DEFAULT_ENCODING = {
     "y": {"dtype": "int16"},
     "x": {"dtype": "int16"},
     "acq_time": {
+        "dtype": np.float64,
         "units": "seconds since 1970-01-01 00:00:00",
         "calendar": "standard",
         "_FillValue": None,
@@ -268,7 +269,7 @@ class NetcdfWriter:
 
         Minor/patch versions > 9 are not supported.
         """
-        numbers = StrictVersion(version).version
+        numbers = Version(version).release
         if numbers[1] > 9 or numbers[2] > 9:
             raise ValueError(
                 "Invalid version number: {}. Minor/patch versions > 9 are not "

@@ -17,6 +17,8 @@ sleep 30
 # Upload new data
 set -e
 
+$upload -p $target_dir/ $source_dir/README.md
+sleep 5
 $upload -p $target_dir/input/corrupt $source_dir/input/corrupt/NSS*
 sleep 30
 $upload -p $target_dir/input/normal $source_dir/input/normal/*.gz
