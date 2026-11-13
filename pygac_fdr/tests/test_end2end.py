@@ -54,71 +54,138 @@ CLARA_EXPECTATIONS = {
         "midnight_line": np.nan,
         "overlap_free_end": 12995,
         "global_quality_flag": QualityFlags.OK,
+        "equator_crossing_longitude": np.array([-79.094, -104.398]),
+        "equator_crossing_time": np.array(
+            ["1981-03-30T00:55:43.706000000", "1981-03-30T02:36:57.706000000"],
+            dtype="datetime64[ns]",
+        ),
     },
     "NSS.GHRR.NA.D81089.S0242.E0427.B0912122.GC": {
         "midnight_line": np.nan,
         "overlap_free_end": 12157,
         "global_quality_flag": QualityFlags.OK,
+        "equator_crossing_longitude": np.array([-129.711, -129.711]),
+        "equator_crossing_time": np.array(
+            ["1981-03-30T04:18:11.706000000", "1981-03-30T04:18:12.206000000"],
+            dtype="datetime64[ns]",
+        ),
     },
     "NSS.GHRR.NA.D81089.S0423.E0609.B0912223.GC": {
         "midnight_line": np.nan,
         "overlap_free_end": 12603,
         "global_quality_flag": QualityFlags.OK,
+        "equator_crossing_longitude": np.array([-155.016, np.nan]),
+        "equator_crossing_time": np.array(
+            ["1981-03-30T05:59:25.706000000", "NaT"],
+            dtype="datetime64[ns]",
+        ),
     },
     "NSS.GHRR.NA.D81089.S0753.E0947.B0912425.WI": {
         "midnight_line": np.nan,
         "overlap_free_end": 13053,
         "global_quality_flag": QualityFlags.OK,
+        "equator_crossing_longitude": np.array([154.359, np.nan]),
+        "equator_crossing_time": np.array(
+            ["1981-03-30T09:21:53.706000000", "NaT"],
+            dtype="datetime64[ns]",
+        ),
     },
     "NSS.GHRR.NA.D81089.S0943.E1058.B0912525.WI": {
         "midnight_line": np.nan,
         "overlap_free_end": 9043,
         "global_quality_flag": QualityFlags.OK,
+        "equator_crossing_longitude": np.array([np.nan, np.nan]),
+        "equator_crossing_time": np.array(["NaT", "NaT"], dtype="datetime64[ns]"),
     },
     "NSS.GHRR.NA.D81089.S1102.E1136.B0912626.WI": {
         "midnight_line": np.nan,
         "overlap_free_end": 3408,
         "global_quality_flag": QualityFlags.OK,
+        "equator_crossing_longitude": np.array([129.055, np.nan]),
+        "equator_crossing_time": np.array(
+            ["1981-03-30T11:03:07.206000000", "NaT"],
+            dtype="datetime64[ns]",
+        ),
     },
     "NSS.GHRR.NA.D81089.S1131.E1205.B0912626.WI": {
         "midnight_line": np.nan,
         "overlap_free_end": 3232,
         "global_quality_flag": QualityFlags.OK,
+        "equator_crossing_longitude": np.array([-97.32, -67.008]),
+        "equator_crossing_time": np.array(
+            ["1981-03-30T11:39:40.206000000", "1981-03-30T11:40:26.706000000"],
+            dtype="datetime64[ns]",
+        ),
     },
     "NSS.GHRR.NA.D81089.S1221.E1315.B0912627.WI": {
         "midnight_line": np.nan,
         "overlap_free_end": 6194,
         "global_quality_flag": QualityFlags.OK,
+        "equator_crossing_longitude": np.array([130.703, 103.742]),
+        "equator_crossing_time": np.array(
+            ["1981-03-30T12:24:46.206000000", "1981-03-30T12:44:21.206000000"],
+            dtype="datetime64[ns]",
+        ),
     },
     "NSS.GHRR.NA.D81089.S1329.E1459.B0912728.WI": {
         "midnight_line": np.nan,
         "overlap_free_end": 10770,
         "global_quality_flag": QualityFlags.OK,
+        "equator_crossing_longitude": np.array([78.43, np.nan]),
+        "equator_crossing_time": np.array(
+            ["1981-03-30T14:25:35.206000000", "NaT"],
+            dtype="datetime64[ns]",
+        ),
     },
     "NSS.GHRR.NA.D81089.S1459.E1631.B0912829.GC": {
         "midnight_line": np.nan,
         "overlap_free_end": 10489,
         "global_quality_flag": QualityFlags.OK,
+        "equator_crossing_longitude": np.array([53.125, np.nan]),
+        "equator_crossing_time": np.array(
+            ["1981-03-30T16:06:49.206000000", "NaT"],
+            dtype="datetime64[ns]",
+        ),
     },
     "NSS.GHRR.NA.D81089.S1626.E1812.B0912930.GC": {
         "midnight_line": np.nan,
         "overlap_free_end": 12057,
         "global_quality_flag": QualityFlags.OK,
+        "equator_crossing_longitude": np.array([27.82, np.nan]),
+        "equator_crossing_time": np.array(
+            ["1981-03-30T17:48:02.706000000", "NaT"],
+            dtype="datetime64[ns]",
+        ),
     },
     "NSS.GHRR.NA.D81089.S1807.E1951.B0913031.GC": {
         "midnight_line": np.nan,
         "overlap_free_end": 12011,
         "global_quality_flag": QualityFlags.OK,
+        "equator_crossing_longitude": np.array([2.516, np.nan]),
+        "equator_crossing_time": np.array(
+            ["1981-03-30T19:29:16.706000000", "NaT"],
+            dtype="datetime64[ns]",
+        ),
     },
     "NSS.GHRR.NA.D81089.S1947.E2131.B0913132.GC": {
         "midnight_line": np.nan,
         "overlap_free_end": 11955,
         "global_quality_flag": QualityFlags.OK,
+        "equator_crossing_longitude": np.array([-22.789, np.nan]),
+        "equator_crossing_time": np.array(
+            ["1981-03-30T21:10:30.706000000", "NaT"],
+            dtype="datetime64[ns]",
+        ),
     },
     "NSS.GHRR.NA.D81089.S2126.E2256.B0913233.WI": {
         "midnight_line": np.nan,
         "overlap_free_end": 10057,
         "global_quality_flag": QualityFlags.OK,
+        "equator_crossing_longitude": np.array([-48.094, np.nan]),
+        "equator_crossing_time": np.array(
+            ["1981-03-30T22:51:44.206000000", "NaT"],
+            dtype="datetime64[ns]",
+        ),
     },
     "NSS.GHRR.NA.D81089.S2251.E0035.B0913334.WI": {
         "midnight_line": 8260,
@@ -126,8 +193,14 @@ CLARA_EXPECTATIONS = {
         # This is the last file here, therefore overlap_free_end == along_track - 1.
         # In CLARA there is overlap with the next file, which is why they have 12101.
         "global_quality_flag": QualityFlags.OK,
+        "equator_crossing_longitude": np.array([-48.094, -73.398]),
+        "equator_crossing_time": np.array(
+            ["1981-03-30T22:51:44.206000000", "1981-03-31T00:32:57.706000000"],
+            dtype="datetime64[ns]",
+        ),
     },
 }  # from CLARA-A3 Feedback Loop 1
+
 
 FAST_FILES = {
     "normal": {
@@ -520,16 +593,18 @@ def test_metadata_clara(
     if config.fast:
         # No overlap when testing just a single file
         pytest.skip()
+    comp_methods = {"equator_crossing_longitude": np.testing.assert_allclose}
     for output_file in l1c_files_normal:
         with subtests.test(file=output_file.name):
             with xr.open_dataset(output_file) as ds:
                 l1b_file = ds.attrs["gac_filename"]
                 expected = CLARA_EXPECTATIONS[l1b_file]
-                for name, value in expected.items():
-                    np.testing.assert_equal(
-                        ds[name].values,
-                        value,
-                        err_msg=f"{output_file.name}: {name}",
+                for var_name, exp_value in expected.items():
+                    comp_method = comp_methods.get(var_name, np.testing.assert_equal)
+                    comp_method(
+                        ds[var_name].values,
+                        exp_value,
+                        err_msg=f"{output_file.name}: {var_name}",
                     )
 
 
