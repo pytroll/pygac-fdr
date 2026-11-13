@@ -3,9 +3,9 @@
 Run with:
 
     pytest -vs test_end2end.py
-    pytest -vs test_end2end.py::test_l1c_files_equal_reference[normal]
+    pytest -vs test_end2end.py::test_regression[normal]
 
-Configure test data, cleanup, tolerances and plotting in test_end2end.yaml.
+Configure test data, tolerances and plotting in test_end2end.yaml.
 """
 
 import gzip
@@ -129,9 +129,20 @@ CLARA_EXPECTATIONS = {
     },
 }  # from CLARA-A3 Feedback Loop 1
 
+FAST_FILES = {
+    "normal": {
+        "l1b": "NSS.GHRR.NA.D81089.S0054.E0246.B0912021.GC.gz",
+        "l1c": "AVHRR-GAC_FDR_1C_N06_19810330T005421Z_19810330T024632Z_R_O_20200101T000000Z_0100.nc",
+    },
+    "corrupt": {
+        "l1b": "NSS.GHRR.M1.D15362.S0031.E0129.B1699697.SV.gz",
+        "l1c": "AVHRR-GAC_FDR_1C_M01_20151228T003207Z_20151228T012926Z_R_O_20200101T000000Z_0100.nc",
+    },
+}
+
 
 @dataclass
-class EndToEndConfig:
+class Config:
     test_data_dir: Path
     input_dir: Path
     output_dir: Path
@@ -142,7 +153,6 @@ class EndToEndConfig:
     atol: float
     fast: bool
     resume: bool
-    cleanup: bool
     plot: bool
     trigger_failure: bool
 
@@ -157,14 +167,14 @@ def _call_cli(command: list[str]) -> None:
 
 
 @pytest.fixture(scope="module")
-def test_config() -> EndToEndConfig:
+def config() -> Config:
     logging_on(logging.DEBUG, for_all=True)
 
     with open(Path(__file__).with_name("test_end2end.yaml")) as fh:
         config_data = yaml.safe_load(fh)
 
     data_dir = Path(config_data["test_data_dir"])
-    config = EndToEndConfig(
+    config = Config(
         test_data_dir=data_dir,
         input_dir=data_dir / "input",
         output_dir=data_dir / "output",
@@ -175,7 +185,6 @@ def test_config() -> EndToEndConfig:
         atol=float(config_data["atol"]),
         fast=config_data["fast"],
         resume=config_data["resume"],
-        cleanup=config_data["cleanup"],
         plot=config_data["plot"],
         trigger_failure=config_data["trigger_failure"],
     )
@@ -184,39 +193,37 @@ def test_config() -> EndToEndConfig:
     return config
 
 
-def _cleanup_output_dir(output_dir: Path, *, enabled: bool) -> None:
-    if enabled and output_dir.exists():
+def _cleanup_output_dir(output_dir: Path) -> None:
+    if output_dir.exists():
         for item in output_dir.iterdir():
             if item.is_file():
                 item.unlink()
 
 
 def _unzip_gac_files(filenames_gz: list[Path], output_dir: Path) -> list[Path]:
-    filenames = []
-    for filename_gz in filenames_gz:
-        filename = output_dir / filename_gz.stem
-        LOG.info("Decompressing %s", filename_gz)
-        with gzip.open(filename_gz, "rb") as source:
-            with open(filename, "wb") as destination:
+    unzipped = []
+    for file_gz in filenames_gz:
+        file_unzip = output_dir / file_gz.stem
+        LOG.info("Decompressing %s", file_gz)
+        with gzip.open(file_gz, "rb") as source:
+            with open(file_unzip, "wb") as destination:
                 shutil.copyfileobj(source, destination)
-        filenames.append(filename)
-    return filenames
+        unzipped.append(file_unzip)
+    return unzipped
 
 
 def _generate_l1c_files(
-    config: EndToEndConfig, variant: str, *, with_metadata: bool
+    config: Config, variant: str, *, with_metadata: bool
 ) -> list[Path]:
     input_dir = config.input_dir / variant
     output_dir = config.output_dir / variant
 
     if config.resume:
         LOG.info("Resuming %s tests with existing output files", variant)
-        return _collect_l1c_files_from_previous_run(output_dir, config.fast)
+        return _collect_l1c_files_from_previous_run(output_dir, variant, config.fast)
 
-    output_dir.mkdir(parents=True, exist_ok=True)
-    _cleanup_output_dir(output_dir, enabled=config.cleanup)
-
-    l1b_files_gz = _collect_l1b_gz_files(input_dir, config.fast)
+    _make_fresh_output_dir(output_dir)
+    l1b_files_gz = _collect_l1b_gz_files(input_dir, variant, config.fast)
     l1b_files = _unzip_gac_files(l1b_files_gz, output_dir)
     l1c_files = _run_pygac_fdr(l1b_files, config.cfg_file, config.tle_dir, output_dir)
     if with_metadata:
@@ -224,20 +231,28 @@ def _generate_l1c_files(
     return l1c_files
 
 
-def _collect_l1c_files_from_previous_run(output_dir: Path, fast: bool) -> list[Path]:
-    l1c_files = sorted(output_dir.glob("*.nc"))
+def _make_fresh_output_dir(output_dir):
+    output_dir.mkdir(parents=True, exist_ok=True)
+    _cleanup_output_dir(output_dir)
+
+
+def _collect_l1c_files_from_previous_run(
+    output_dir: Path, variant: str, fast: bool
+) -> list[Path]:
     if fast:
-        l1c_files = l1c_files[-1:]
+        filename = output_dir / FAST_FILES[variant]["l1c"]
+        l1c_files = [filename] if filename.is_file() else []
+    else:
+        l1c_files = sorted(output_dir.glob("*.nc"))
     if not l1c_files:
         raise RuntimeError("No l1c files from previous run")
     return l1c_files
 
 
-def _collect_l1b_gz_files(input_dir: Path, fast: bool) -> list[Path]:
-    l1b_files_gz = sorted(input_dir.glob("*.gz"))
+def _collect_l1b_gz_files(input_dir: Path, variant: str, fast: bool) -> list[Path]:
     if fast:
-        return l1b_files_gz[-1:]
-    return l1b_files_gz
+        return [input_dir / FAST_FILES[variant]["l1b"]]
+    return sorted(input_dir.glob("*.gz"))
 
 
 def _run_pygac_fdr(
@@ -274,25 +289,13 @@ def _update_metadata(l1c_files: list[Path], output_dir: Path) -> None:
 
 
 @pytest.fixture(scope="module")
-def l1c_files_normal(test_config: EndToEndConfig) -> Iterator[list[Path]]:
-    try:
-        yield _generate_l1c_files(test_config, "normal", with_metadata=True)
-    finally:
-        _cleanup_output_dir(
-            test_config.output_dir / "normal",
-            enabled=test_config.cleanup,
-        )
+def l1c_files_normal(config: Config) -> list[Path]:
+    return _generate_l1c_files(config, "normal", with_metadata=True)
 
 
 @pytest.fixture(scope="module")
-def l1c_files_corrupt(test_config: EndToEndConfig) -> Iterator[list[Path]]:
-    try:
-        yield _generate_l1c_files(test_config, "corrupt", with_metadata=False)
-    finally:
-        _cleanup_output_dir(
-            test_config.output_dir / "corrupt",
-            enabled=test_config.cleanup,
-        )
+def l1c_files_corrupt(config: Config) -> list[Path]:
+    return _generate_l1c_files(config, "corrupt", with_metadata=False)
 
 
 @pytest.fixture
@@ -300,32 +303,36 @@ def l1c_files(request: pytest.FixtureRequest, variant: str) -> list[Path]:
     return request.getfixturevalue(f"l1c_files_{variant}")
 
 
+@pytest.fixture
+def l1c_files_exp(variant: str, config: Config) -> list[Path]:
+    ref_dir = config.output_ref_dir / variant
+    if config.fast:
+        return [ref_dir / FAST_FILES[variant]["l1c"]]
+    return sorted(ref_dir.glob("*.nc"))
+
+
 @pytest.mark.parametrize("variant", ["normal", "corrupt"])
-def test_l1c_files_generated(
-    variant: str, l1c_files: list[Path], test_config: EndToEndConfig
-) -> None:
-    ref_dir = test_config.output_ref_dir / variant
-    names_exp = [f.name for f in sorted(ref_dir.glob("*.nc"))]
+def test_l1c_files(l1c_files: list[Path], l1c_files_exp: list[Path]) -> None:
+    """Test that all l1c files were generated."""
+    names_expected = [f.name for f in sorted(l1c_files_exp)]
     names_actual = [f.name for f in sorted(l1c_files)]
-    assert names_exp == names_actual
+    assert names_expected == names_actual
 
 
 @pytest.mark.parametrize("variant", ["normal", "corrupt"])
-def test_l1c_files_equal_reference(
+def test_regression(
     variant: str,
     l1c_files: list[Path],
-    test_config: EndToEndConfig,
+    config: Config,
     subtests: SubTests,
 ) -> None:
-    config = test_config
+    """Test that l1c files equal the reference."""
     for output_file in l1c_files:
         with subtests.test(file=output_file.name):
             _compare_to_reference(output_file, variant, config)
 
 
-def _compare_to_reference(
-    output_file: Path, variant: str, config: EndToEndConfig
-) -> None:
+def _compare_to_reference(output_file: Path, variant: str, config: Config) -> None:
     ds_tst, ds_ref = _read_file_pair(output_file, variant, config.output_ref_dir)
     ds_tst, ds_ref = _prepare_datasets_for_comparison(ds_tst, ds_ref, config)
     plot_on_failure = _plot_diffs_on_failure(
@@ -349,19 +356,19 @@ def _read_file_pair(
 
 
 def _prepare_datasets_for_comparison(
-    ds_tst: xr.Dataset, ds_ref: xr.Dataset, test_config: EndToEndConfig
+    ds_tst: xr.Dataset, ds_ref: xr.Dataset, config: Config
 ) -> tuple[xr.Dataset, xr.Dataset]:
     for attr in DYNAMIC_ATTRS:
         ds_tst.attrs.pop(attr)
         ds_ref.attrs.pop(attr)
 
-    if test_config.fast:
+    if config.fast:
         # There's no overlap with a single file
         exclusions = ["overlap_free_start", "overlap_free_end"]
         ds_tst = ds_tst.drop_vars(exclusions, errors="ignore")
         ds_ref = ds_ref.drop_vars(exclusions, errors="ignore")
 
-    if test_config.trigger_failure:
+    if config.trigger_failure:
         ds_tst["latitude"] = ds_tst["latitude"] * 2
         ds_tst.attrs["geospatial_lat_min"] = 9999.0
 
@@ -369,18 +376,18 @@ def _prepare_datasets_for_comparison(
 
 
 def _assert_datasets_close(
-    ds_tst: xr.Dataset, ds_ref: xr.Dataset, test_config: EndToEndConfig
+    ds_tst: xr.Dataset, ds_ref: xr.Dataset, config: Config
 ) -> None:
     xr.testing.assert_allclose(
         ds_tst,
         ds_ref,
-        atol=test_config.atol,
-        rtol=test_config.rtol,
+        atol=config.atol,
+        rtol=config.rtol,
     )
 
 
 def _assert_global_attrs_close(
-    actual: dict[str, Any], expected: dict[str, Any], config: EndToEndConfig
+    actual: dict[str, Any], expected: dict[str, Any], config: Config
 ) -> None:
     actual = actual.copy()
     expected = expected.copy()
@@ -506,8 +513,13 @@ def _plot_diffs(ds_tst: xr.Dataset, ds_ref: xr.Dataset, output_file: Path) -> No
             plt.close(fig)
 
 
-def test_l1c_metadata_clara(l1c_files_normal: list[Path], subtests: SubTests) -> None:
-    """Compare normal-file metadata against CLARA-A3 expectations."""
+def test_metadata_clara(
+    l1c_files_normal: list[Path], subtests: SubTests, config: Config
+) -> None:
+    """Compare metadata (normal variant) against CLARA-A3 expectations."""
+    if config.fast:
+        # No overlap when testing just a single file
+        pytest.skip()
     for output_file in l1c_files_normal:
         with subtests.test(file=output_file.name):
             with xr.open_dataset(output_file) as ds:
@@ -521,10 +533,8 @@ def test_l1c_metadata_clara(l1c_files_normal: list[Path], subtests: SubTests) ->
                     )
 
 
-def test_l1c_files_are_cf_compliant(
-    l1c_files_normal: list[Path], subtests: SubTests
-) -> None:
-    """Check generated normal files for CF errors and fatal errors."""
+def test_cf_compliance(l1c_files_normal: list[Path], subtests: SubTests) -> None:
+    """Check that l1c files (normal variant) are CF compliant."""
     checker = CFChecker()
     for output_file in l1c_files_normal:
         with subtests.test(file=output_file.name):
